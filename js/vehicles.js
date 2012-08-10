@@ -40,17 +40,20 @@ Vehicle.prototype.calcWheelPos = function(offset) {
                 this.pos.y + offset * Math.cos(this.orientation));
 }
 
-Vehicle.prototype.update = function(left_speed, right_speed) {
-  this.wheels.left.angvel = left_speed;
+Vehicle.prototype.setSpeed = function(left_speed, right_speed) {
+  this.wheels.left.angvel = -left_speed;
   //wheel rotation flips when turning around the right side.
-  this.wheels.right.angvel = -right_speed;
+  this.wheels.right.angvel = right_speed;
+}
+
+Vehicle.prototype.update = function() {
   this.orientation += (this.wheels.left.angvel + this.wheels.right.angvel);
 //  console.log("orientation:" + this.orientation + " posx:" + this.pos.x + " posy:" + this.pos.y);
 
   //rotate around left wheel
   this.pos = rotateAroundPoint(this.pos.x, this.pos.y, this.wheels.left.pos.x, this.wheels.left.pos.y, this.wheels.left.angvel);
   //rotate around right wheel, where it was before the left wheel rotation
-  this.pos = rotateAroundPoint(this.pos.x, this.pos.y, this.wheels.right.pos.x, this.wheels.right.pos.y, -this.wheels.right.angvel);
+  this.pos = rotateAroundPoint(this.pos.x, this.pos.y, this.wheels.right.pos.x, this.wheels.right.pos.y, this.wheels.right.angvel);
   //now update the wheel positions
   this.wheels.left.pos = this.calcWheelPos(this.dim.y/2);
   this.wheels.right.pos = this.calcWheelPos(-this.dim.y/2);
@@ -89,8 +92,15 @@ function World(canvas, rate) {
 
 World.prototype.step = function() {
   this.canvas.clear();
+  //maximum wheel speed of 0.05
+  var left = parseInt(document.getElementById("left").value) / 1000.0;
+  var right = parseInt(document.getElementById("right").value) / 1000.0;
+
   for (var i=0;i<this.vehicles.length;i++) {
-    this.vehicles[i].update(0.001, 0.000);
+    if (left && right) {
+      this.vehicles[i].setSpeed(left, right);
+    }
+    this.vehicles[i].update();
     this.vehicles[i].draw();
   }
 }
