@@ -1,3 +1,4 @@
+//maybe with a transform matrix some day
 function rotateAroundPoint(x,y,rx,ry,angle) {
   x -= rx;
   y -= ry;
@@ -46,17 +47,27 @@ Vehicle.prototype.setSpeed = function(left_speed, right_speed) {
   this.wheels.right.angvel = right_speed;
 }
 
-Vehicle.prototype.update = function() {
-  this.orientation += (this.wheels.left.angvel + this.wheels.right.angvel);
-//  console.log("orientation:" + this.orientation + " posx:" + this.pos.x + " posy:" + this.pos.y);
+Vehicle.prototype.withinBounds = function() {
+  padding = Math.max(this.dim.x, this.dim.y)/2;
+  return (this.pos.x > padding &&
+          this.pos.x < (640-padding) &&
+          this.pos.y > padding &&
+          this.pos.y < (480-padding));
+}
 
-  //rotate around left wheel
-  this.pos = rotateAroundPoint(this.pos.x, this.pos.y, this.wheels.left.pos.x, this.wheels.left.pos.y, this.wheels.left.angvel);
-  //rotate around right wheel, where it was before the left wheel rotation
-  this.pos = rotateAroundPoint(this.pos.x, this.pos.y, this.wheels.right.pos.x, this.wheels.right.pos.y, this.wheels.right.angvel);
-  //now update the wheel positions
-  this.wheels.left.pos = this.calcWheelPos(this.dim.y/2);
-  this.wheels.right.pos = this.calcWheelPos(-this.dim.y/2);
+Vehicle.prototype.update = function() {
+  if (this.withinBounds()) {
+    this.orientation += (this.wheels.left.angvel + this.wheels.right.angvel);
+  //  console.log("orientation:" + this.orientation + " posx:" + this.pos.x + " posy:" + this.pos.y);
+
+    //rotate around left wheel
+    this.pos = rotateAroundPoint(this.pos.x, this.pos.y, this.wheels.left.pos.x, this.wheels.left.pos.y, this.wheels.left.angvel);
+    //rotate around right wheel, where it was before the left wheel rotation
+    this.pos = rotateAroundPoint(this.pos.x, this.pos.y, this.wheels.right.pos.x, this.wheels.right.pos.y, this.wheels.right.angvel);
+    //now update the wheel positions
+    this.wheels.left.pos = this.calcWheelPos(this.dim.y/2);
+    this.wheels.right.pos = this.calcWheelPos(-this.dim.y/2);
+  }
 }
 
 Vehicle.prototype.draw = function() {
@@ -82,29 +93,45 @@ Vehicle.prototype.draw = function() {
 
 }
 
+function Beacon(canvas, name, x, y) {
+  this.canvas = canvas;
+  this.name = name;
+}
+
 function World(canvas, rate) {
   var self = this;
-  this.vehicles = [new Vehicle(canvas, 64, 32)];
-  this.beacons = [];
+  this.vehicles = [new Vehicle(canvas, 32, 16)];
+  this.beacons = [new Beacon(canvas, "green", 50,40)];
   this.canvas = canvas;
   setInterval(function(){self.step();},rate);
 }
 
 World.prototype.step = function() {
   this.canvas.clear();
+  var vehicle;
   //maximum wheel speed of 0.05
-  var left = parseInt(document.getElementById("left").value) / 1000.0;
-  var right = parseInt(document.getElementById("right").value) / 1000.0;
+  var left = 0.015;//parseInt(document.getElementById("left").value) / 1000.0;
+  var right = 0.01;//parseInt(document.getElementById("right").value) / 1000.0;
 
   for (var i=0;i<this.vehicles.length;i++) {
+    vehicle = this.vehicles[i];
     if (left && right) {
-      this.vehicles[i].setSpeed(left, right);
+      vehicle.setSpeed(left, right);
     }
-    this.vehicles[i].update();
-    this.vehicles[i].draw();
+    vehicle.update();
+    vehicle.draw();
   }
 }
 
 function vehicleSimulation(canvas) {
   world = new World(canvas);
 }
+/* TODO
+ - calculate the speed based on the angles of the wheels to the object
+ - add up all the speeds from angles with all objects
+ - normalize these values to some nominal speed
+
+ - make vehicle(s) draggable
+ - add beacons, make draggable too
+ - add selection menu for beacons: on/off, attract/repel, cross sensors
+*/

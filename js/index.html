@@ -2,10 +2,22 @@
 <head>
   <script src='./vehicles.js'></script>
 </head>
+<style>
+
+</style>
 <body>
-  left: <input id="left" value="10"></input>
-  right: <input id="right" value="20"></input><br/>
-  <canvas id="simulationCanvas" width='640' height='480'>no canvas for you!</canvas>
+  <table>
+    <tr><td><canvas id="simulationCanvas" width='640' height='480'>no canvas for you!</canvas></td>
+      <td>
+        <table>
+          <tr><td>Beacon</td><td>on/off</td><td>attract</td><td>repel</td><td>cross</td></tr>
+          <tr><td>Red</td>  <td><input id="red-onoff" type="checkbox"/></td><td><input id="red-attract" type="radio" name="red" checked/></td><td><input id="red-repel" type="radio" name="red"/></td><td><input id="red-cross" type="checkbox"/></td></tr>
+          <tr><td>Green</td><td><input id="green-onoff" type="checkbox"/></td><td><input id="green-attract" type="radio" name="green" checked/></td><td><input id="green-repel" type="radio" name="green"/></td><td><input id="green-cross" type="checkbox"/></td></tr>
+          <tr><td>Blue</td> <td><input id="blue-onoff" type="checkbox"/></td><td><input id="blue-attract" type="radio" name="blue" checked/></td><td><input id="blue-repel" type="radio" name="blue"/></td><td><input id="blue-cross" type="checkbox"/></td></tr>
+        </table>
+      </td>
+    </tr>
+  </table>
   <script type="text/javascript">
     vehicleSimulation(new Canvas("simulationCanvas"));
   </script>
