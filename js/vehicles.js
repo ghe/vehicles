@@ -19,6 +19,20 @@ function Canvas(elementId) {
   this.ctx=this.canvas.getContext("2d");
   this.width = parseInt(this.canvas.width);
   this.height = parseInt(this.canvas.height);
+  this.rect = this.canvas.getBoundingClientRect();
+  console.log("rect: " + this.rect);
+  this.mouseX = 0;
+  this.mouseY = 0;
+
+  var _this = this; //javascript dumbness
+  this.canvas.addEventListener('mousemove', function(evt) { _this.mouseMoveListener(evt); }, false);
+}
+
+Canvas.prototype.mouseMoveListener = function (evt) {
+  var root = document.documentElement;
+  this.mouseX = evt.clientX - this.rect.top - root.scrollTop;
+  this.mouseY = evt.clientY - this.rect.left - root.scrollLeft;
+  console.log("mouseX: " + this.mouseX + ", mouseY: " + this.mouseY);
 }
 
 Canvas.prototype.clear = function() {
@@ -34,6 +48,21 @@ function Vehicle(canvas,dimx,dimy) {
                          angvel: 0.0},
                  right: {pos: this.calcWheelPos(-this.dim.y/2),
                          angvel: 0.0}};
+  this.dragMe = false;
+  var _this = this; //javascript dumbness
+  this.canvas.canvas.addEventListener('mousedown', function(evt) { _this.mouseDownListener(evt); }, false);
+  this.canvas.canvas.addEventListener('mouseup', function(evt) { _this.mouseUpListener(evt); }, false);
+}
+
+Vehicle.prototype.mouseDownListener = function (evt) {
+  if ((Math.abs(this.pos.x - this.canvas.mouseX) < this.dim.x/2) &&
+      (Math.abs(this.pos.y - this.canvas.mouseY) < this.dim.y/2)) {
+    this.dragMe = true;
+  }
+}
+
+Vehicle.prototype.mouseUpListener = function (evt) {
+    this.dragMe = false;
 }
 
 Vehicle.prototype.calcWheelPos = function(offset) {
@@ -56,18 +85,22 @@ Vehicle.prototype.withinBounds = function() {
 }
 
 Vehicle.prototype.update = function() {
-  if (this.withinBounds()) {
-    this.orientation += (this.wheels.left.angvel + this.wheels.right.angvel);
-  //  console.log("orientation:" + this.orientation + " posx:" + this.pos.x + " posy:" + this.pos.y);
-
-    //rotate around left wheel
-    this.pos = rotateAroundPoint(this.pos.x, this.pos.y, this.wheels.left.pos.x, this.wheels.left.pos.y, this.wheels.left.angvel);
-    //rotate around right wheel, where it was before the left wheel rotation
-    this.pos = rotateAroundPoint(this.pos.x, this.pos.y, this.wheels.right.pos.x, this.wheels.right.pos.y, this.wheels.right.angvel);
-    //now update the wheel positions
-    this.wheels.left.pos = this.calcWheelPos(this.dim.y/2);
-    this.wheels.right.pos = this.calcWheelPos(-this.dim.y/2);
+  if (this.dragMe) {
+    this.pos.x = this.canvas.mouseX;
+    this.pos.y = this.canvas.mouseY;
   }
+  else {
+    if (this.withinBounds()) {
+      this.orientation += (this.wheels.left.angvel + this.wheels.right.angvel);
+      //rotate around left wheel
+      this.pos = rotateAroundPoint(this.pos.x, this.pos.y, this.wheels.left.pos.x, this.wheels.left.pos.y, this.wheels.left.angvel);
+      //rotate around right wheel, where it was before the left wheel rotation
+      this.pos = rotateAroundPoint(this.pos.x, this.pos.y, this.wheels.right.pos.x, this.wheels.right.pos.y, this.wheels.right.angvel);
+    }
+  }
+  //now update the wheel positions
+  this.wheels.left.pos = this.calcWheelPos(this.dim.y/2);
+  this.wheels.right.pos = this.calcWheelPos(-this.dim.y/2);
 }
 
 Vehicle.prototype.draw = function() {
