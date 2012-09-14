@@ -63,6 +63,7 @@ function Vehicle(canvas,dimx,dimy) {
   var _this = this; //javascript dumbness
   this.canvas.canvas.addEventListener('mousedown', function(evt) { _this.mouseDownListener(evt); }, false);
   this.canvas.canvas.addEventListener('mouseup', function(evt) { _this.mouseUpListener(evt); }, false);
+  this.canvas.canvas.addEventListener('mousewheel', function(evt) { _this.mouseWheelListener(evt); }, false);
 }
 
 Vehicle.prototype.mouseDownListener = function (evt) {
@@ -74,6 +75,12 @@ Vehicle.prototype.mouseDownListener = function (evt) {
 
 Vehicle.prototype.mouseUpListener = function (evt) {
     this.dragMe = false;
+}
+
+Vehicle.prototype.mouseWheelListener = function (evt) {
+  if(this.dragMe) {
+    this.orientation += evt.wheelDelta / 10.0;
+  }
 }
 
 Vehicle.prototype.calcWheelPos = function(offset) {
@@ -93,6 +100,9 @@ Vehicle.prototype.withinBounds = function() {
           this.pos.x < (640-padding) &&
           this.pos.y > padding &&
           this.pos.y < (480-padding));
+}
+
+Vehicle.prototype.calcVelocity = function(beacons) {
 }
 
 Vehicle.prototype.update = function() {
@@ -198,18 +208,19 @@ World.prototype.step = function() {
   var left = 0.015;//parseInt(document.getElementById("left").value) / 1000.0;
   var right = 0.01;//parseInt(document.getElementById("right").value) / 1000.0;
 
+  for (var i=0;i<this.beacons.length;i++) {
+    var beacon = this.beacons[i];
+    beacon.update();
+    beacon.draw();
+  }
   for (var i=0;i<this.vehicles.length;i++) {
     var vehicle = this.vehicles[i];
     if (left && right) {
       vehicle.setSpeed(left, right);
     }
+    vehicle.calcVelocity(this.beacons);
     vehicle.update();
     vehicle.draw();
-  }
-  for (var i=0;i<this.beacons.length;i++) {
-    var beacon = this.beacons[i];
-    beacon.update();
-    beacon.draw();
   }
 }
 
