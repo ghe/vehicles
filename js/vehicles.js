@@ -103,6 +103,7 @@ Vehicle.prototype.withinBounds = function() {
 }
 
 Vehicle.prototype.calcVelocity = function(beacons) {
+
 }
 
 Vehicle.prototype.update = function() {
@@ -156,15 +157,31 @@ function Beacon(canvas, color, x, y, dimx, dimy) {
   this.pos = new Vec2D(x,y);
   this.dim = new Vec2D(dimx,dimy);
   this.dragMe = false;
+  this.enabled = false;
+  this.attract = true;
+  this.cross = false;
+
+  //Event Listeners
   var _this = this; //javascript dumbness
   this.canvas.canvas.addEventListener('mousedown', function(evt) { _this.mouseDownListener(evt); }, false);
   this.canvas.canvas.addEventListener('mouseup', function(evt) { _this.mouseUpListener(evt); }, false);
+
+  var onoffbox = document.getElementById(color + "-onoff");
+  var attractopt = document.getElementById(color + "-attract");
+  var repelopt = document.getElementById(color + "-repel");
+  var crossbox = document.getElementById(color + "-cross");
+  onoffbox.addEventListener("click", function(evt) { _this.enabled = evt.target.checked; }, false);
+  attractopt.addEventListener("click", function(evt) { _this.attract = true; }, false);
+  repelopt.addEventListener("click", function(evt) { _this.attract = false; }, false);
+  crossbox.addEventListener("click", function(evt) { _this.cross = evt.target.checked; }, false);
 }
 
 Beacon.prototype.mouseDownListener = function (evt) {
-  if ((Math.abs(this.pos.x - this.canvas.mouseX) < this.dim.x/2) &&
-      (Math.abs(this.pos.y - this.canvas.mouseY) < this.dim.y/2)) {
-    this.dragMe = true;
+  if (this.enabled) {
+    if ((Math.abs(this.pos.x - this.canvas.mouseX) < this.dim.x/2) &&
+        (Math.abs(this.pos.y - this.canvas.mouseY) < this.dim.y/2)) {
+      this.dragMe = true;
+    }
   }
 }
 
@@ -173,20 +190,22 @@ Beacon.prototype.mouseUpListener = function (evt) {
 }
 
 Beacon.prototype.update = function() {
-  if (this.dragMe) {
+  if (this.enabled && this.dragMe) {
     this.pos.x = this.canvas.mouseX;
     this.pos.y = this.canvas.mouseY;
   }
 }
 
 Beacon.prototype.draw = function() {
-  var size = this.size;
-  this.canvas.ctx.save();
-  this.canvas.ctx.translate(this.pos.x, this.pos.y);
-  this.canvas.ctx.fillStyle = this.color;
-  this.canvas.ctx.fillRect(-size/2,-size/2,size,size);
-  this.canvas.ctx.fillRect(-this.dim.x/2,-this.dim.y/2,this.dim.x,this.dim.y);
-  this.canvas.ctx.restore();
+  if (this.enabled) {
+    var size = this.size;
+    this.canvas.ctx.save();
+    this.canvas.ctx.translate(this.pos.x, this.pos.y);
+    this.canvas.ctx.fillStyle = this.color;
+    this.canvas.ctx.fillRect(-size/2,-size/2,size,size);
+    this.canvas.ctx.fillRect(-this.dim.x/2,-this.dim.y/2,this.dim.x,this.dim.y);
+    this.canvas.ctx.restore();
+  }
 }
 
 /***********************************************************************
