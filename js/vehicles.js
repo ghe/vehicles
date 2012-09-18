@@ -1,6 +1,9 @@
 /***********************************************************************
  * global
  **********************************************************************/
+const TWOPI = Math.PI * 2;
+const PISQUARED = Math.PI * Math.PI;
+
 function vehicleSimulation(canvas) {
   world = new World(canvas);
 }
@@ -16,6 +19,27 @@ function rotateAroundPoint(x,y,rx,ry,angle) {
   return new Vec2D(x,y);
 }
 
+function angle_between(p1, p2) {
+  var dx = p2.x - p1.x;
+  var dy = p2.y - p1.y;
+  return Math.atan2(dy, dx);
+}
+
+function normalize_angle(angle) {
+  var newangle = angle;
+  if (angle > Math.PI) {
+    newangle = normalize_angle(angle - TWOPI);
+  }
+  else if (angle < -Math.PI) {
+    newangle = normalize_angle(angle + TWOPI);
+  }
+  return newangle;
+}
+
+function square(x) {
+  return x*x;
+}
+
 function Vec2D (x,y) {
   this.x = x;
   this.y = y;
@@ -26,6 +50,7 @@ function Vec2D (x,y) {
  **********************************************************************/
 function Canvas(elementId) {
   this.canvas=document.getElementById(elementId);
+  this.canvas.style.border = "black 1px solid";
   this.ctx=this.canvas.getContext("2d");
   this.width = parseInt(this.canvas.width);
   this.height = parseInt(this.canvas.height);
@@ -103,7 +128,38 @@ Vehicle.prototype.withinBounds = function() {
 }
 
 Vehicle.prototype.calcVelocity = function(beacons) {
-
+/* TODO
+ - calculate the speed based on the angles of the wheels to the object
+ - add up all the speeds from angles with all objects
+ - normalize these values to some nominal speed
+*/
+  var left = 0.0;
+  var right = 0.0;
+  var max_influence = 0.0;
+  for (var i=0;i<beacons.length;i++) {
+    var beacon = beacons[i];
+    if (beacon.enabled) {
+      max_influence += Math.PI;
+      var attract_factor = (beacon.attract ? 1 : -1);
+      var left_angle = normalize_angle(this.orientation + angle_between(this.wheels.left.pos, beacon.pos));
+      var right_angle = normalize_angle(this.orientation + angle_between(this.wheels.right.pos, beacon.pos));
+      if (beacon.cross) {
+        left += left_angle * attract_factor;
+        right += right_angle * attract_factor;
+      }
+      else {
+        right += left_angle * attract_factor;
+        left += right_angle * attract_factor;
+      }
+    }
+  }
+  if (max_influence > 0.0)
+  {
+    this.setSpeed(0.05*(left/max_influence),0.05*(right/max_influence));
+  }
+  else {
+    this.setSpeed(0.015, 0.01);
+  }
 }
 
 Vehicle.prototype.update = function() {
@@ -113,7 +169,8 @@ Vehicle.prototype.update = function() {
   }
   else {
     if (this.withinBounds()) {
-      this.orientation += (this.wheels.left.angvel + this.wheels.right.angvel);
+      this.orientation = normalize_angle(this.orientation + this.wheels.left.angvel + this.wheels.right.angvel);
+
       //rotate around left wheel
       this.pos = rotateAroundPoint(this.pos.x, this.pos.y, this.wheels.left.pos.x, this.wheels.left.pos.y, this.wheels.left.angvel);
       //rotate around right wheel, where it was before the left wheel rotation
@@ -129,7 +186,13 @@ Vehicle.prototype.draw = function() {
   this.canvas.ctx.save();
   this.canvas.ctx.translate(this.pos.x, this.pos.y);
   this.canvas.ctx.rotate(-this.orientation);
-  this.canvas.ctx.fillRect(-this.dim.x/2,-this.dim.y/2,this.dim.x,this.dim.y);
+  this.canvas.ctx.beginPath();
+  this.canvas.ctx.moveTo(this.dim.x, this.dim.y); 
+  this.canvas.ctx.lineTo(this.dim.x, -this.dim.y);
+  this.canvas.ctx.lineTo(-this.dim.x, 0);
+  this.canvas.ctx.lineTo(this.dim.x, this.dim.y);
+  this.canvas.ctx.fill();
+  this.canvas.ctx.closePath();
   this.canvas.ctx.restore();
 
   this.canvas.ctx.save();
@@ -213,7 +276,7 @@ Beacon.prototype.draw = function() {
  **********************************************************************/
 function World(canvas, rate) {
   var self = this;
-  this.vehicles = [new Vehicle(canvas, 32, 16)];
+  this.vehicles = [new Vehicle(canvas, 16, 16)];
   this.beacons = [new Beacon(canvas, "red",   50, 40, 16, 16),
                   new Beacon(canvas, "green", 100,40, 16, 16),
                   new Beacon(canvas, "blue",  150,40, 16, 16) ];
@@ -234,17 +297,9 @@ World.prototype.step = function() {
   }
   for (var i=0;i<this.vehicles.length;i++) {
     var vehicle = this.vehicles[i];
-    if (left && right) {
-      vehicle.setSpeed(left, right);
-    }
     vehicle.calcVelocity(this.beacons);
     vehicle.update();
     vehicle.draw();
   }
 }
 
-/* TODO
- - calculate the speed based on the angles of the wheels to the object
- - add up all the speeds from angles with all objects
- - normalize these values to some nominal speed
-*/
