@@ -3,6 +3,7 @@
  **********************************************************************/
 const TWOPI = Math.PI * 2;
 const PISQUARED = Math.PI * Math.PI;
+const MAX_DIST = distance_between(new Vec2D(0,0), new Vec2D(640,480));
 
 function vehicleSimulation(canvas) {
   world = new World(canvas);
@@ -23,6 +24,12 @@ function angle_between(p1, p2) {
   var dx = p2.x - p1.x;
   var dy = p2.y - p1.y;
   return Math.atan2(dy, dx);
+}
+
+function distance_between(p1, p2) {
+  var dx = p2.x - p1.x;
+  var dy = p2.y - p1.y;
+  return Math.sqrt(square(dx) + square(dy));
 }
 
 function normalize_angle(angle) {
@@ -139,22 +146,28 @@ Vehicle.prototype.calcVelocity = function(beacons) {
   for (var i=0;i<beacons.length;i++) {
     var beacon = beacons[i];
     if (beacon.enabled) {
-      max_influence += Math.PI;
+      max_influence += MAX_DIST;
       var attract_factor = (beacon.attract ? 1 : -1);
-      var left_angle = normalize_angle(this.orientation + angle_between(this.wheels.left.pos, beacon.pos));
-      var right_angle = normalize_angle(this.orientation + angle_between(this.wheels.right.pos, beacon.pos));
+      var left_angle = normalize_angle(angle_between(this.wheels.left.pos, beacon.pos) - this.orientation);
+      var right_angle = normalize_angle(angle_between(this.wheels.right.pos, beacon.pos) - this.orientation);
+      var left_dist = distance_between(this.wheels.left.pos, beacon.pos);
+      var right_dist = distance_between(this.wheels.right.pos, beacon.pos);
+      //and now the tricky part; to determine the influence of a sensor on a wheel based on the distance and angle to it.
+      // because the whole point is to have two sensors each drive a wheel independently, it is important to not mix left and right.
+      // sensing would be strongest when close and head on.
+      var left_influence =  left_dist;
+      var right_influence = right_dist;
       if (beacon.cross) {
-        left += left_angle * attract_factor;
-        right += right_angle * attract_factor;
+        left += left_influence * attract_factor;
+        right += right_influence * attract_factor;
       }
       else {
-        right += left_angle * attract_factor;
-        left += right_angle * attract_factor;
+        right += left_influence * attract_factor;
+        left += right_influence * attract_factor;
       }
     }
   }
-  if (max_influence > 0.0)
-  {
+  if (max_influence > 0.0) {
     this.setSpeed(0.05*(left/max_influence),0.05*(right/max_influence));
   }
   else {
@@ -187,7 +200,7 @@ Vehicle.prototype.draw = function() {
   this.canvas.ctx.translate(this.pos.x, this.pos.y);
   this.canvas.ctx.rotate(-this.orientation);
   this.canvas.ctx.beginPath();
-  this.canvas.ctx.moveTo(this.dim.x, this.dim.y); 
+  this.canvas.ctx.moveTo(this.dim.x, this.dim.y);
   this.canvas.ctx.lineTo(this.dim.x, -this.dim.y);
   this.canvas.ctx.lineTo(-this.dim.x, 0);
   this.canvas.ctx.lineTo(this.dim.x, this.dim.y);
