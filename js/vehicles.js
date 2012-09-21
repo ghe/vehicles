@@ -84,17 +84,23 @@ function Canvas(elementId) {
   this.rect = this.canvas.getBoundingClientRect();
   this.mouseX = 0;
   this.mouseY = 0;
+  this.dragThis = null;
 
   //the special 'this' will be reassigned to the context of the event generator
   //shadowing the 'this' we have now. Binding it to _this gets around it.
   var _this = this;
   this.canvas.addEventListener('mousemove', function(evt) { _this.mouseMoveListener(evt); }, false);
+  this.canvas.addEventListener('mouseup', function(evt) { _this.mouseUpListener(evt); }, false);
 }
 
 Canvas.prototype.mouseMoveListener = function (evt) {
   var root = document.documentElement;
   this.mouseX = evt.clientX - this.rect.top - root.scrollTop;
   this.mouseY = evt.clientY - this.rect.left - root.scrollLeft;
+}
+
+Canvas.prototype.mouseUpListener = function (evt) {
+    this.dragThis = null;
 }
 
 Canvas.prototype.clear = function() {
@@ -113,29 +119,25 @@ function Vehicle(canvas,dimx,dimy) {
                          angvel: 0.0},
                  right: {pos: this.calcWheelPos(-this.dim.y/2),
                          angvel: 0.0}};
-  this.dragMe = false;
 
   //the special 'this' will be reassigned to the context of the event generator
   //shadowing the 'this' we have now. Binding it to _this gets around it.
   var _this = this;
   this.canvas.canvas.addEventListener('mousedown', function(evt) { _this.mouseDownListener(evt); }, false);
-  this.canvas.canvas.addEventListener('mouseup', function(evt) { _this.mouseUpListener(evt); }, false);
   this.canvas.canvas.addEventListener('mousewheel', function(evt) { _this.mouseWheelListener(evt); }, false);
 }
 
 Vehicle.prototype.mouseDownListener = function (evt) {
   if ((Math.abs(this.pos.x - this.canvas.mouseX) < this.dim.x/2) &&
       (Math.abs(this.pos.y - this.canvas.mouseY) < this.dim.y/2)) {
-    this.dragMe = true;
+    if (this.canvas.dragThis == null) {
+      this.canvas.dragThis = this;
+    }
   }
 }
 
-Vehicle.prototype.mouseUpListener = function (evt) {
-    this.dragMe = false;
-}
-
 Vehicle.prototype.mouseWheelListener = function (evt) {
-  if(this.dragMe) {
+  if (this.canvas.dragThis == this) {
     this.orientation = normalize_angle(this.orientation + (evt.wheelDelta / 500.0));
   }
 }
@@ -177,8 +179,8 @@ Vehicle.prototype.calcInfluence = function(wheelpos, beaconpos) {
   var dist = distance_between(wheelpos, beaconpos);
 
   var mid_angle = HALFPI - Math.abs(clip(angle, HALFPI, HALFPIX3) - Math.PI);
-  var angle_influence = scale(Math.sqrt(mid_angle), 0, Math.sqrt(HALFPI), 0.0, 1.0);
-  var dist_influence = 1;//scale(square(max_dist - dist), 0, max_dist_sq, 0.1, 1);
+  var angle_influence = scale(mid_angle, 0, HALFPI, 0.0, 1.0);
+  var dist_influence = scale(square(max_dist - dist), 0, max_dist_sq, 0.1, 1);
 
   return angle_influence * dist_influence;
 }
@@ -216,7 +218,7 @@ Vehicle.prototype.calcVelocity = function(beacons) {
 }
 
 Vehicle.prototype.update = function() {
-  if (this.dragMe) {
+  if (this.canvas.dragThis == this) {
     this.pos.x = this.canvas.mouseX;
     this.pos.y = this.canvas.mouseY;
   }
@@ -271,7 +273,6 @@ function Beacon(canvas, color, x, y, dimx, dimy) {
   this.color = color;
   this.pos = new Vec2D(x,y);
   this.dim = new Vec2D(dimx,dimy);
-  this.dragMe = false;
   this.enabled = false;
   this.attract = true;
   this.cross = false;
@@ -281,7 +282,6 @@ function Beacon(canvas, color, x, y, dimx, dimy) {
   var _this = this;
   //Event Listeners
   this.canvas.canvas.addEventListener('mousedown', function(evt) { _this.mouseDownListener(evt); }, false);
-  this.canvas.canvas.addEventListener('mouseup', function(evt) { _this.mouseUpListener(evt); }, false);
 
   var onoffbox = document.getElementById(color + "-onoff");
   var attractopt = document.getElementById(color + "-attract");
@@ -299,17 +299,15 @@ Beacon.prototype.mouseDownListener = function (evt) {
   if (this.enabled) {
     if ((Math.abs(this.pos.x - this.canvas.mouseX) < this.dim.x/2) &&
         (Math.abs(this.pos.y - this.canvas.mouseY) < this.dim.y/2)) {
-      this.dragMe = true;
+      if (this.canvas.dragThis == null) {
+        this.canvas.dragThis = this;
+      }
     }
   }
 }
 
-Beacon.prototype.mouseUpListener = function (evt) {
-    this.dragMe = false;
-}
-
 Beacon.prototype.update = function() {
-  if (this.enabled && this.dragMe) {
+  if (this.enabled && this.canvas.dragThis == this) {
     this.pos.x = this.canvas.mouseX;
     this.pos.y = this.canvas.mouseY;
   }
