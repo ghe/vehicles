@@ -151,8 +151,16 @@ Vehicle.prototype.setSpeed = function(left_speed, right_speed) {
   this.wheels.right.angvel = right_speed;
 }
 
+Vehicle.prototype.boundsCheck = function() {
+  var padding = Math.max(this.dim.x, this.dim.y)/2;
+  if (this.pos.x < -padding) this.pos.x = this.canvas.width+padding;
+  if (this.pos.x > this.canvas.width+padding) this.pos.x = -padding;
+  if (this.pos.y < -padding) this.pos.y = this.canvas.height+padding;
+  if (this.pos.y > this.canvas.height+padding) this.pos.y = -padding;
+}
+
 Vehicle.prototype.withinBounds = function() {
-  padding = Math.max(this.dim.x, this.dim.y)/2;
+  var padding = Math.max(this.dim.x, this.dim.y)/2;
   return (this.pos.x > padding &&
           this.pos.x < (640-padding) &&
           this.pos.y > padding &&
@@ -168,8 +176,9 @@ Vehicle.prototype.calcInfluence = function(wheelpos, beaconpos) {
   var angle = normalize_angle(angle_between(wheelpos, beaconpos) + this.orientation);
   var dist = distance_between(wheelpos, beaconpos);
 
-  var angle_influence = scale(clip(angle, HALFPI, HALFPIX3),HALFPI, HALFPIX3, 0.0, 1.0);
-  var dist_influence = scale(square(max_dist - dist), 0, max_dist_sq, 0.0, 1);
+  var mid_angle = HALFPI - Math.abs(clip(angle, HALFPI, HALFPIX3) - Math.PI);
+  var angle_influence = scale(Math.sqrt(mid_angle), 0, Math.sqrt(HALFPI), 0.0, 1.0);
+  var dist_influence = 1;//scale(square(max_dist - dist), 0, max_dist_sq, 0.1, 1);
 
   return angle_influence * dist_influence;
 }
@@ -212,14 +221,13 @@ Vehicle.prototype.update = function() {
     this.pos.y = this.canvas.mouseY;
   }
   else {
-    if (this.withinBounds()) {
-      this.orientation = normalize_angle(this.orientation + this.wheels.left.angvel + this.wheels.right.angvel);
+    this.orientation = normalize_angle(this.orientation + this.wheels.left.angvel + this.wheels.right.angvel);
 
-      //rotate around left wheel
-      this.pos = rotateAroundPoint(this.pos.x, this.pos.y, this.wheels.left.pos.x, this.wheels.left.pos.y, this.wheels.left.angvel);
-      //rotate around right wheel, where it was before the left wheel rotation
-      this.pos = rotateAroundPoint(this.pos.x, this.pos.y, this.wheels.right.pos.x, this.wheels.right.pos.y, this.wheels.right.angvel);
-    }
+    //rotate around left wheel
+    this.pos = rotateAroundPoint(this.pos.x, this.pos.y, this.wheels.left.pos.x, this.wheels.left.pos.y, this.wheels.left.angvel);
+    //rotate around right wheel, where it was before the left wheel rotation
+    this.pos = rotateAroundPoint(this.pos.x, this.pos.y, this.wheels.right.pos.x, this.wheels.right.pos.y, this.wheels.right.angvel);
+    this.boundsCheck();
   }
   //now update the wheel positions
   this.wheels.left.pos = this.calcWheelPos(this.dim.y/2);
@@ -279,10 +287,12 @@ function Beacon(canvas, color, x, y, dimx, dimy) {
   var attractopt = document.getElementById(color + "-attract");
   var repelopt = document.getElementById(color + "-repel");
   var crossbox = document.getElementById(color + "-cross");
-  onoffbox.addEventListener("click", function(evt) { _this.enabled = evt.target.checked; }, false);
-  attractopt.addEventListener("click", function(evt) { _this.attract = true; }, false);
-  repelopt.addEventListener("click", function(evt) { _this.attract = false; }, false);
-  crossbox.addEventListener("click", function(evt) { _this.cross = evt.target.checked; }, false);
+  if (onoffbox) {
+    onoffbox.addEventListener("click", function(evt) { _this.enabled = evt.target.checked; }, false);
+    attractopt.addEventListener("click", function(evt) { _this.attract = true; }, false);
+    repelopt.addEventListener("click", function(evt) { _this.attract = false; }, false);
+    crossbox.addEventListener("click", function(evt) { _this.cross = evt.target.checked; }, false);
+  }
 }
 
 Beacon.prototype.mouseDownListener = function (evt) {
@@ -323,9 +333,18 @@ Beacon.prototype.draw = function() {
 function World(canvas, rate) {
   var self = this;
   this.vehicles = [new Vehicle(canvas, 16, 16)];
-  this.beacons = [new Beacon(canvas, "red",   50, 40, 16, 16),
-                  new Beacon(canvas, "green", 100,40, 16, 16),
-                  new Beacon(canvas, "blue",  150,40, 16, 16) ];
+  this.beacons = [new Beacon(canvas, "red",      Math.random() * canvas.width, Math.random() * canvas.height, 16, 16),
+                  new Beacon(canvas, "green",    Math.random() * canvas.width, Math.random() * canvas.height, 16, 16),
+                  new Beacon(canvas, "blue",     Math.random() * canvas.width, Math.random() * canvas.height, 16, 16),
+                  new Beacon(canvas, "silver",   Math.random() * canvas.width, Math.random() * canvas.height, 16, 16),
+                  new Beacon(canvas, "maroon",   Math.random() * canvas.width, Math.random() * canvas.height, 16, 16),
+                  new Beacon(canvas, "olive",    Math.random() * canvas.width, Math.random() * canvas.height, 16, 16),
+                  new Beacon(canvas, "lime",     Math.random() * canvas.width, Math.random() * canvas.height, 16, 16),
+                  new Beacon(canvas, "aqua",     Math.random() * canvas.width, Math.random() * canvas.height, 16, 16),
+                  new Beacon(canvas, "teal",     Math.random() * canvas.width, Math.random() * canvas.height, 16, 16),
+                  new Beacon(canvas, "navy",     Math.random() * canvas.width, Math.random() * canvas.height, 16, 16),
+                  new Beacon(canvas, "fuchsia",  Math.random() * canvas.width, Math.random() * canvas.height, 16, 16),
+                  new Beacon(canvas, "purple",   Math.random() * canvas.width, Math.random() * canvas.height, 16, 16) ];
   this.canvas = canvas;
   setInterval(function(){self.step();},rate);
 }
