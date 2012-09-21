@@ -159,14 +159,22 @@ Vehicle.prototype.withinBounds = function() {
           this.pos.y < (480-padding));
 }
 
-Vehicle.prototype.calcVelocity = function(beacons) {
-/* TODO
- - calculate the speed based on the angles of the wheels to the object
- - add up all the speeds from angles with all objects
- - normalize these values to some nominal speed
-*/
+Vehicle.prototype.calcInfluence = function(wheelpos, beaconpos) {
   var max_dist = this.canvas.diagonal;
   var max_dist_sq = this.canvas.diagonal_squared;
+
+  //this yields angles relative to the orientation of the vehicle.
+  // 0 or 2PI behind, 0.5PI left, PI ahead, 1.5PI right
+  var angle = normalize_angle(angle_between(wheelpos, beaconpos) + this.orientation);
+  var dist = distance_between(wheelpos, beaconpos);
+
+  var angle_influence = scale(clip(angle, HALFPI, HALFPIX3),HALFPI, HALFPIX3, 0.0, 1.0);
+  var dist_influence = scale(square(max_dist - dist), 0, max_dist_sq, 0.0, 1);
+
+  return angle_influence * dist_influence;
+}
+
+Vehicle.prototype.calcVelocity = function(beacons) {
   var left = 0.0;
   var right = 0.0;
   var max_influence = 0.0;
@@ -175,22 +183,9 @@ Vehicle.prototype.calcVelocity = function(beacons) {
     if (beacon.enabled) {
       max_influence += 1;
       var attract_factor = (beacon.attract ? 1 : -1);
-      //this yields angles relative to the orientation of the vehicle.
-      // 0 or 2PI behind, 0.5PI left, PI ahead, 1.5PI right
-      var left_angle = normalize_angle(angle_between(this.wheels.left.pos, beacon.pos) + this.orientation);
-      var right_angle = normalize_angle(angle_between(this.wheels.right.pos, beacon.pos) + this.orientation);
-      var left_dist = distance_between(this.wheels.left.pos, beacon.pos);
-      var right_dist = distance_between(this.wheels.right.pos, beacon.pos);
-      //and now the tricky part; to determine the influence of a sensor on a wheel based on the distance and angle to it.
-      // because the whole point is to have two sensors each drive a wheel independently, it is important to not mix left and right.
-      // sensing would be strongest when close and head on.
-      var left_angle_influence = scale(clip(left_angle, HALFPI, HALFPIX3),HALFPI, HALFPIX3, 0.0, 1.0);
-      var left_dist_influence = scale(square(max_dist - left_dist), 0, max_dist_sq, 0.0, 1);
-      var right_angle_influence = scale(clip(right_angle, HALFPI,HALFPIX3),HALFPI, HALFPIX3, 0.0, 1.0);
-      var right_dist_influence = scale(square(max_dist - right_dist), 0, max_dist_sq, 0.0, 1);
 
-      var left_influence = left_angle_influence * left_dist_influence;
-      var right_influence = right_angle_influence * right_dist_influence;
+      var left_influence = this.calcInfluence(this.wheels.left.pos, beacon.pos);
+      var right_influence  = this.calcInfluence(this.wheels.right.pos, beacon.pos);
 
       if (beacon.cross) {
         left += left_influence * attract_factor;
@@ -202,10 +197,11 @@ Vehicle.prototype.calcVelocity = function(beacons) {
       }
     }
   }
+  //normalize to a reasonable speed regardless of number of beacons
   if (max_influence > 0.0) {
     this.setSpeed(0.05*(left/max_influence),0.05*(right/max_influence));
   }
-  else {
+  else { //circle around when there are no beacons.
     this.setSpeed(0.015, 0.01);
   }
 }
