@@ -2,8 +2,9 @@
  * global
  **********************************************************************/
 const TWOPI = Math.PI * 2;
-const PISQUARED = Math.PI * Math.PI;
-const MAX_DIST = distance_between(new Vec2D(0,0), new Vec2D(640,480));
+const HALFPI = Math.PI / 2;
+const HALFPIX3 = 3*HALFPI;
+const PISQUARED = square(Math.PI * Math.PI);
 
 function vehicleSimulation(canvas) {
   world = new World(canvas);
@@ -32,12 +33,13 @@ function distance_between(p1, p2) {
   return Math.sqrt(square(dx) + square(dy));
 }
 
+//normalize angles outside 0-2PI back into range.
 function normalize_angle(angle) {
   var newangle = angle;
-  if (angle > Math.PI) {
+  if (angle > TWOPI) {
     newangle = normalize_angle(angle - TWOPI);
   }
-  else if (angle < -Math.PI) {
+  else if (angle < 0) {
     newangle = normalize_angle(angle + TWOPI);
   }
   return newangle;
@@ -47,6 +49,22 @@ function square(x) {
   return x*x;
 }
 
+// scales any value from one range to another
+function scale(value, inlo, inhi, outlo, outhi) {
+  var inrange = inhi - inlo;
+  var outrange = outhi - outlo;
+  if (inrange == 0) return 0;
+  return outlo + (((value-inlo)*outrange)/inrange);
+}
+
+function clip(value, lo, hi) {
+  if (value < lo) return lo;
+  if (value > hi) return hi;
+  return value;
+}
+/***********************************************************************
+ * Vec2D
+ **********************************************************************/
 function Vec2D (x,y) {
   this.x = x;
   this.y = y;
@@ -61,11 +79,15 @@ function Canvas(elementId) {
   this.ctx=this.canvas.getContext("2d");
   this.width = parseInt(this.canvas.width);
   this.height = parseInt(this.canvas.height);
+  this.diagonal = Math.sqrt(square(this.width) + square(this.height));
+  this.diagonal_squared = square(this.diagonal);
   this.rect = this.canvas.getBoundingClientRect();
   this.mouseX = 0;
   this.mouseY = 0;
 
-  var _this = this; //javascript dumbness
+  //the special 'this' will be reassigned to the context of the event generator
+  //shadowing the 'this' we have now. Binding it to _this gets around it.
+  var _this = this;
   this.canvas.addEventListener('mousemove', function(evt) { _this.mouseMoveListener(evt); }, false);
 }
 
@@ -92,7 +114,10 @@ function Vehicle(canvas,dimx,dimy) {
                  right: {pos: this.calcWheelPos(-this.dim.y/2),
                          angvel: 0.0}};
   this.dragMe = false;
-  var _this = this; //javascript dumbness
+
+  //the special 'this' will be reassigned to the context of the event generator
+  //shadowing the 'this' we have now. Binding it to _this gets around it.
+  var _this = this;
   this.canvas.canvas.addEventListener('mousedown', function(evt) { _this.mouseDownListener(evt); }, false);
   this.canvas.canvas.addEventListener('mouseup', function(evt) { _this.mouseUpListener(evt); }, false);
   this.canvas.canvas.addEventListener('mousewheel', function(evt) { _this.mouseWheelListener(evt); }, false);
@@ -111,7 +136,7 @@ Vehicle.prototype.mouseUpListener = function (evt) {
 
 Vehicle.prototype.mouseWheelListener = function (evt) {
   if(this.dragMe) {
-    this.orientation += evt.wheelDelta / 10.0;
+    this.orientation = normalize_angle(this.orientation + (evt.wheelDelta / 500.0));
   }
 }
 
@@ -140,23 +165,33 @@ Vehicle.prototype.calcVelocity = function(beacons) {
  - add up all the speeds from angles with all objects
  - normalize these values to some nominal speed
 */
+  var max_dist = this.canvas.diagonal;
+  var max_dist_sq = this.canvas.diagonal_squared;
   var left = 0.0;
   var right = 0.0;
   var max_influence = 0.0;
   for (var i=0;i<beacons.length;i++) {
     var beacon = beacons[i];
     if (beacon.enabled) {
-      max_influence += MAX_DIST;
+      max_influence += 1;
       var attract_factor = (beacon.attract ? 1 : -1);
-      var left_angle = normalize_angle(angle_between(this.wheels.left.pos, beacon.pos) - this.orientation);
-      var right_angle = normalize_angle(angle_between(this.wheels.right.pos, beacon.pos) - this.orientation);
+      //this yields angles relative to the orientation of the vehicle.
+      // 0 or 2PI behind, 0.5PI left, PI ahead, 1.5PI right
+      var left_angle = normalize_angle(angle_between(this.wheels.left.pos, beacon.pos) + this.orientation);
+      var right_angle = normalize_angle(angle_between(this.wheels.right.pos, beacon.pos) + this.orientation);
       var left_dist = distance_between(this.wheels.left.pos, beacon.pos);
       var right_dist = distance_between(this.wheels.right.pos, beacon.pos);
       //and now the tricky part; to determine the influence of a sensor on a wheel based on the distance and angle to it.
       // because the whole point is to have two sensors each drive a wheel independently, it is important to not mix left and right.
       // sensing would be strongest when close and head on.
-      var left_influence =  left_dist;
-      var right_influence = right_dist;
+      var left_angle_influence = scale(clip(left_angle, HALFPI, HALFPIX3),HALFPI, HALFPIX3, 0.0, 1.0);
+      var left_dist_influence = scale(square(max_dist - left_dist), 0, max_dist_sq, 0.0, 1);
+      var right_angle_influence = scale(clip(right_angle, HALFPI,HALFPIX3),HALFPI, HALFPIX3, 0.0, 1.0);
+      var right_dist_influence = scale(square(max_dist - right_dist), 0, max_dist_sq, 0.0, 1);
+
+      var left_influence = left_angle_influence * left_dist_influence;
+      var right_influence = right_angle_influence * right_dist_influence;
+
       if (beacon.cross) {
         left += left_influence * attract_factor;
         right += right_influence * attract_factor;
@@ -237,8 +272,10 @@ function Beacon(canvas, color, x, y, dimx, dimy) {
   this.attract = true;
   this.cross = false;
 
+  //the special 'this' will be reassigned to the context of the event generator
+  //shadowing the 'this' we have now. Binding it to _this gets around it.
+  var _this = this;
   //Event Listeners
-  var _this = this; //javascript dumbness
   this.canvas.canvas.addEventListener('mousedown', function(evt) { _this.mouseDownListener(evt); }, false);
   this.canvas.canvas.addEventListener('mouseup', function(evt) { _this.mouseUpListener(evt); }, false);
 
