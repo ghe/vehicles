@@ -182,7 +182,7 @@ Vehicle.prototype.calcInfluence = function(wheelpos, beaconpos) {
   var dist = distance_between(wheelpos, beaconpos);
 
   var mid_angle = HALFPI - Math.abs(clip(angle, HALFPI, HALFPIX3) - Math.PI);
-  var angle_influence = scale(mid_angle, 0, HALFPI, 0.0, 1.0);
+  var angle_influence = scale(mid_angle, 0, HALFPI, 0.1, 1.0);
   var dist_influence = scale(square(max_dist - dist), 0, max_dist_sq, 0.1, 1);
 
   return angle_influence * dist_influence;
@@ -328,21 +328,41 @@ Beacon.prototype.draw = function() {
  **********************************************************************/
 function World(canvas, rate) {
   var _this = this;
-  var gains = {"red":  {"red":   {l2l:0.1, l2r:0.1, r2l:0.1, r2r:0.2},
-                        "green": {l2l:1, l2r:1, r2l:1, r2r:1},
-                        "blue":  {l2l:1, l2r:1, r2l:1, r2r:1}},
-               "green":{"red":   {l2l:1, l2r:1, r2l:1, r2r:1},
-                        "green": {l2l:1, l2r:1, r2l:1, r2r:1},
-                        "blue":  {l2l:1, l2r:1, r2l:1, r2r:1}},
-               "blue": {"red":   {l2l:1, l2r:1, r2l:1, r2r:1},
-                        "green": {l2l:1, l2r:1, r2l:1, r2r:1},
-                        "blue":  {l2l:1, l2r:1, r2l:1, r2r:1}}};
+
+  var gains = {"red":  {"red":   {l2l:this.randGain(), l2r:this.randGain(), r2l:this.randGain(), r2r:this.randGain()},
+                        "green": {l2l:this.randGain(), l2r:this.randGain(), r2l:this.randGain(), r2r:this.randGain()},
+                        "blue":  {l2l:this.randGain(), l2r:this.randGain(), r2l:this.randGain(), r2r:this.randGain()}},
+               "green":{"red":   {l2l:this.randGain(), l2r:this.randGain(), r2l:this.randGain(), r2r:this.randGain()},
+                        "green": {l2l:this.randGain(), l2r:this.randGain(), r2l:this.randGain(), r2r:this.randGain()},
+                        "blue":  {l2l:this.randGain(), l2r:this.randGain(), r2l:this.randGain(), r2r:this.randGain()}},
+               "blue": {"red":   {l2l:this.randGain(), l2r:this.randGain(), r2l:this.randGain(), r2r:this.randGain()},
+                        "green": {l2l:this.randGain(), l2r:this.randGain(), r2l:this.randGain(), r2r:this.randGain()},
+                        "blue":  {l2l:this.randGain(), l2r:this.randGain(), r2l:this.randGain(), r2r:this.randGain()}}};
+
+
 
   this.canvas = canvas;
   this.vehicles  = [new Vehicle(canvas, gains, "red",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()),
-                    //new Vehicle(canvas, gains, "red",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()),
-                    new Vehicle(canvas, gains, "red",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()) ];
+                    new Vehicle(canvas, gains, "green",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()),
+                    new Vehicle(canvas, gains, "blue",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()),
+                    new Vehicle(canvas, gains, "red",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()),
+                    new Vehicle(canvas, gains, "green",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()),
+                    new Vehicle(canvas, gains, "blue",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()),
+                    new Vehicle(canvas, gains, "red",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()),
+                    new Vehicle(canvas, gains, "green",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()),
+                    new Vehicle(canvas, gains, "blue",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()),
+                    new Vehicle(canvas, gains, "red",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()),
+                    new Vehicle(canvas, gains, "green",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()),
+                    new Vehicle(canvas, gains, "blue",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()),
+                    new Vehicle(canvas, gains, "red",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()),
+                    new Vehicle(canvas, gains, "green",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()),
+                    new Vehicle(canvas, gains, "green",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()),
+                    new Vehicle(canvas, gains, "blue",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()) ];
   setInterval(function(){_this.step();},rate);
+}
+
+World.prototype.randGain = function() {
+  return (Math.random() * 2.0) - 1.0;
 }
 
 World.prototype.randOrient = function() {
@@ -368,3 +388,26 @@ World.prototype.step = function() {
   }
 }
 
+/***********************************************************************
+ * page support
+ **********************************************************************/
+function buildControlTable(colors) {
+  var gainTypes = ["l2l", "l2r", "r2l", "r2r"];
+  var gainsTable = document.createElement('table');
+  for (r in colors) {
+    var row = gainsTable.insertRow(0);
+    for (c in colors) {
+      var cell = row.insertCell(0);
+      for (t in gainTypes) {
+        var slider = document.createElement("input");
+        slider.type = "range";
+        slider.id = colors[r] + "_" + colors[c] + "_" + gainTypes[t];
+        cell.appendChild(slider);
+        cell.appendChild(document.createElement("br"));
+      }
+    }
+  }
+  var gainsRow = document.getElementById('row');
+  var gainsCell = gainsRow.insertCell(1);
+  gainsCell.appendChild(gainsTable);
+}

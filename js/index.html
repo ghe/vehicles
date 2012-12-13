@@ -6,19 +6,12 @@
 
 </style>
 <body>
-  <table>
-    <tr><td><canvas id="simulationCanvas" width='640' height='480'>no canvas for you!</canvas></td>
-      <td>
-        <table name="beacons">
-          <tr><th>Beacon</th><th>on/off</th><th>left-gain</th><th>right-gain</th><th>cross</th></tr>
-          <tr><td>Red</td>  <td><input id="red-onoff" type="checkbox"/></td><td><input id="red-left-gain" type="range" name="red" checked/></td><td><input id="red-right-gain" type="range" name="red"/></td><td><input id="red-cross" type="checkbox"/></td></tr>
-          <tr><td>Green</td><td><input id="green-onoff" type="checkbox"/></td><td><input id="green-attract" type="radio" name="green" checked/></td><td><input id="green-repel" type="radio" name="green"/></td><td><input id="green-cross" type="checkbox"/></td></tr>
-          <tr><td>Blue</td> <td><input id="blue-onoff" type="checkbox"/></td><td><input id="blue-attract" type="radio" name="blue" checked/></td><td><input id="blue-repel" type="radio" name="blue"/></td><td><input id="blue-cross" type="checkbox"/></td></tr>
-        </table>
-      </td>
+  <table id="table">
+    <tr id="row"><td><canvas id="simulationCanvas" width='640' height='480'>no canvas for you!</canvas></td>
     </tr>
   </table>
   <script type="text/javascript">
+    buildControlTable(["red","green","blue"]);
     vehicleSimulation(new Canvas("simulationCanvas"));
   </script>
 </body>
