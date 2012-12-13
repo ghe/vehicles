@@ -9,22 +9,11 @@
   <table>
     <tr><td><canvas id="simulationCanvas" width='640' height='480'>no canvas for you!</canvas></td>
       <td>
-        <table>
-          <tr><td>Beacon</td><td>on/off</td><td>forward</td><td>reverse</td><td>cross</td></tr>
-          <tr><td>Red</td>  <td><input id="red-onoff" type="checkbox"/></td><td><input id="red-attract" type="radio" name="red" checked/></td><td><input id="red-repel" type="radio" name="red"/></td><td><input id="red-cross" type="checkbox"/></td></tr>
+        <table name="beacons">
+          <tr><th>Beacon</th><th>on/off</th><th>left-gain</th><th>right-gain</th><th>cross</th></tr>
+          <tr><td>Red</td>  <td><input id="red-onoff" type="checkbox"/></td><td><input id="red-left-gain" type="range" name="red" checked/></td><td><input id="red-right-gain" type="range" name="red"/></td><td><input id="red-cross" type="checkbox"/></td></tr>
           <tr><td>Green</td><td><input id="green-onoff" type="checkbox"/></td><td><input id="green-attract" type="radio" name="green" checked/></td><td><input id="green-repel" type="radio" name="green"/></td><td><input id="green-cross" type="checkbox"/></td></tr>
           <tr><td>Blue</td> <td><input id="blue-onoff" type="checkbox"/></td><td><input id="blue-attract" type="radio" name="blue" checked/></td><td><input id="blue-repel" type="radio" name="blue"/></td><td><input id="blue-cross" type="checkbox"/></td></tr>
-<!--
-          <tr><td>Silver</td>  <td><input id="silver-onoff" type="checkbox"/></td><td><input id="silver-attract" type="radio" name="silver" checked/></td><td><input id="silver-repel" type="radio" name="silver"/></td><td><input id="silver-cross" type="checkbox"/></td></tr>
-          <tr><td>Maroon</td><td><input id="maroon-onoff" type="checkbox"/></td><td><input id="maroon-attract" type="radio" name="maroon" checked/></td><td><input id="maroon-repel" type="radio" name="maroon"/></td><td><input id="maroon-cross" type="checkbox"/></td></tr>
-          <tr><td>Olive</td> <td><input id="olive-onoff" type="checkbox"/></td><td><input id="olive-attract" type="radio" name="olive" checked/></td><td><input id="olive-repel" type="radio" name="olive"/></td><td><input id="olive-cross" type="checkbox"/></td></tr>
-          <tr><td>Lime</td> <td><input id="lime-onoff" type="checkbox"/></td><td><input id="lime-attract" type="radio" name="lime" checked/></td><td><input id="lime-repel" type="radio" name="lime"/></td><td><input id="lime-cross" type="checkbox"/></td></tr>
-          <tr><td>Aqua</td> <td><input id="aqua-onoff" type="checkbox"/></td><td><input id="aqua-attract" type="radio" name="aqua" checked/></td><td><input id="aqua-repel" type="radio" name="aqua"/></td><td><input id="aqua-cross" type="checkbox"/></td></tr>
-          <tr><td>Teal</td> <td><input id="teal-onoff" type="checkbox"/></td><td><input id="teal-attract" type="radio" name="teal" checked/></td><td><input id="teal-repel" type="radio" name="teal"/></td><td><input id="teal-cross" type="checkbox"/></td></tr>
-          <tr><td>Navy</td> <td><input id="navy-onoff" type="checkbox"/></td><td><input id="navy-attract" type="radio" name="navy" checked/></td><td><input id="navy-repel" type="radio" name="navy"/></td><td><input id="navy-cross" type="checkbox"/></td></tr>
-          <tr><td>Fuchsia</td> <td><input id="fuchsia-onoff" type="checkbox"/></td><td><input id="fuchsia-attract" type="radio" name="fuchsia" checked/></td><td><input id="fuchsia-repel" type="radio" name="fuchsia"/></td><td><input id="fuchsia-cross" type="checkbox"/></td></tr>
-          <tr><td>Purple</td> <td><input id="purple-onoff" type="checkbox"/></td><td><input id="purple-attract" type="radio" name="purple" checked/></td><td><input id="purple-repel" type="radio" name="purple"/></td><td><input id="purple-cross" type="checkbox"/></td></tr>
--->
         </table>
       </td>
     </tr>

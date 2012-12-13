@@ -110,11 +110,14 @@ Canvas.prototype.clear = function() {
 /***********************************************************************
  * Vehicle
  **********************************************************************/
-function Vehicle(canvas,dimx,dimy) {
+function Vehicle(canvas,gains,color,posx,posy, orientation) {
   this.canvas = canvas;
-  this.dim = new Vec2D(dimx, dimy);
-  this.pos = new Vec2D(this.canvas.width/2, this.canvas.height/2);
-  this.orientation = 0.0;
+  this.gains = gains;
+  this.color = color;
+  this.dim = new Vec2D(16, 16);
+//  this.pos = new Vec2D(this.canvas.width/2, this.canvas.height/2);
+  this.pos = new Vec2D(posx,posy);
+  this.orientation = orientation;
   this.wheels = {left:  {pos: this.calcWheelPos(this.dim.y/2),
                          angvel: 0.0},
                  right: {pos: this.calcWheelPos(-this.dim.y/2),
@@ -185,27 +188,21 @@ Vehicle.prototype.calcInfluence = function(wheelpos, beaconpos) {
   return angle_influence * dist_influence;
 }
 
-Vehicle.prototype.calcVelocity = function(beacons) {
+Vehicle.prototype.calcVelocity = function(vehicles) {
   var left = 0.0;
   var right = 0.0;
   var max_influence = 0.0;
-  for (var i=0;i<beacons.length;i++) {
-    var beacon = beacons[i];
-    if (beacon.enabled) {
+  for (var i=0;i<vehicles.length;i++) {
+    var vehicle = vehicles[i];
+    if (vehicle != this) {
       max_influence += 1;
-      var attract_factor = (beacon.attract ? 1 : -1);
 
-      var left_influence = this.calcInfluence(this.wheels.left.pos, beacon.pos);
-      var right_influence  = this.calcInfluence(this.wheels.right.pos, beacon.pos);
+      var left_influence = this.calcInfluence(this.wheels.left.pos, vehicle.pos);
+      var right_influence  = this.calcInfluence(this.wheels.right.pos, vehicle.pos);
 
-      if (beacon.cross) {
-        left += left_influence * attract_factor;
-        right += right_influence * attract_factor;
-      }
-      else {
-        right += left_influence * attract_factor;
-        left += right_influence * attract_factor;
-      }
+      var gain = this.gains[vehicle.color][this.color];
+      left += (left_influence * gain.l2l) + (right_influence * gain.r2l);
+      right += (left_influence * gain.l2r) + (right_influence * gain.r2r);
     }
   }
   //normalize to a reasonable speed regardless of number of beacons
@@ -245,6 +242,7 @@ Vehicle.prototype.draw = function() {
   this.canvas.ctx.lineTo(this.dim.x, -this.dim.y);
   this.canvas.ctx.lineTo(-this.dim.x, 0);
   this.canvas.ctx.lineTo(this.dim.x, this.dim.y);
+  this.canvas.ctx.fillStyle = this.color;
   this.canvas.ctx.fill();
   this.canvas.ctx.closePath();
   this.canvas.ctx.restore();
@@ -329,22 +327,31 @@ Beacon.prototype.draw = function() {
  * World
  **********************************************************************/
 function World(canvas, rate) {
-  var self = this;
-  this.vehicles = [new Vehicle(canvas, 16, 16)];
-  this.beacons = [new Beacon(canvas, "red",      Math.random() * canvas.width, Math.random() * canvas.height, 16, 16),
-                  new Beacon(canvas, "green",    Math.random() * canvas.width, Math.random() * canvas.height, 16, 16),
-                  new Beacon(canvas, "blue",     Math.random() * canvas.width, Math.random() * canvas.height, 16, 16),
-                  new Beacon(canvas, "silver",   Math.random() * canvas.width, Math.random() * canvas.height, 16, 16),
-                  new Beacon(canvas, "maroon",   Math.random() * canvas.width, Math.random() * canvas.height, 16, 16),
-                  new Beacon(canvas, "olive",    Math.random() * canvas.width, Math.random() * canvas.height, 16, 16),
-                  new Beacon(canvas, "lime",     Math.random() * canvas.width, Math.random() * canvas.height, 16, 16),
-                  new Beacon(canvas, "aqua",     Math.random() * canvas.width, Math.random() * canvas.height, 16, 16),
-                  new Beacon(canvas, "teal",     Math.random() * canvas.width, Math.random() * canvas.height, 16, 16),
-                  new Beacon(canvas, "navy",     Math.random() * canvas.width, Math.random() * canvas.height, 16, 16),
-                  new Beacon(canvas, "fuchsia",  Math.random() * canvas.width, Math.random() * canvas.height, 16, 16),
-                  new Beacon(canvas, "purple",   Math.random() * canvas.width, Math.random() * canvas.height, 16, 16) ];
+  var _this = this;
+  var gains = {"red":  {"red":   {l2l:0.1, l2r:0.1, r2l:0.1, r2r:0.2},
+                        "green": {l2l:1, l2r:1, r2l:1, r2r:1},
+                        "blue":  {l2l:1, l2r:1, r2l:1, r2r:1}},
+               "green":{"red":   {l2l:1, l2r:1, r2l:1, r2r:1},
+                        "green": {l2l:1, l2r:1, r2l:1, r2r:1},
+                        "blue":  {l2l:1, l2r:1, r2l:1, r2r:1}},
+               "blue": {"red":   {l2l:1, l2r:1, r2l:1, r2r:1},
+                        "green": {l2l:1, l2r:1, r2l:1, r2r:1},
+                        "blue":  {l2l:1, l2r:1, r2l:1, r2r:1}}};
+
   this.canvas = canvas;
-  setInterval(function(){self.step();},rate);
+  this.vehicles  = [new Vehicle(canvas, gains, "red",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()),
+                    //new Vehicle(canvas, gains, "red",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()),
+                    new Vehicle(canvas, gains, "red",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()) ];
+  setInterval(function(){_this.step();},rate);
+}
+
+World.prototype.randOrient = function() {
+  return (Math.random() * TWOPI);
+}
+
+World.prototype.randCoord = function(dim) {
+  var quarter = dim / 4;
+  return quarter + (Math.random() * quarter * 2);
 }
 
 World.prototype.step = function() {
@@ -353,14 +360,9 @@ World.prototype.step = function() {
   var left = 0.015;//parseInt(document.getElementById("left").value) / 1000.0;
   var right = 0.01;//parseInt(document.getElementById("right").value) / 1000.0;
 
-  for (var i=0;i<this.beacons.length;i++) {
-    var beacon = this.beacons[i];
-    beacon.update();
-    beacon.draw();
-  }
   for (var i=0;i<this.vehicles.length;i++) {
     var vehicle = this.vehicles[i];
-    vehicle.calcVelocity(this.beacons);
+    vehicle.calcVelocity(this.vehicles);
     vehicle.update();
     vehicle.draw();
   }
