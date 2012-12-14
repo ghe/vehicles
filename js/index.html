@@ -6,13 +6,14 @@
 
 </style>
 <body>
-  <table id="table">
-    <tr id="row"><td><canvas id="simulationCanvas" width='640' height='480'>no canvas for you!</canvas></td>
+  <table>
+    <tr>
+      <td><canvas id="simulationCanvas" width='640' height='480'>no canvas for you!</canvas></td>
+      <td><table id="controlPanel" ></table></td>
     </tr>
   </table>
   <script type="text/javascript">
-    buildControlTable(["red","green","blue"]);
-    vehicleSimulation(new Canvas("simulationCanvas"));
+    vehicleSimulation(new Canvas("simulationCanvas"), "controlPanel");
   </script>
 </body>
 </html>

@@ -6,8 +6,8 @@ const HALFPI = Math.PI / 2;
 const HALFPIX3 = 3*HALFPI;
 const PISQUARED = square(Math.PI * Math.PI);
 
-function vehicleSimulation(canvas) {
-  world = new World(canvas);
+function vehicleSimulation(canvas, controlPanelId) {
+  world = new World(canvas, controlPanelId, 1);
 }
 
 //maybe with a transform matrix some day
@@ -264,71 +264,14 @@ Vehicle.prototype.draw = function() {
 }
 
 /***********************************************************************
- * Beacon
- **********************************************************************/
-function Beacon(canvas, color, x, y, dimx, dimy) {
-  this.canvas = canvas;
-  this.color = color;
-  this.pos = new Vec2D(x,y);
-  this.dim = new Vec2D(dimx,dimy);
-  this.enabled = false;
-  this.attract = true;
-  this.cross = false;
-
-  //the special 'this' will be reassigned to the context of the event generator
-  //shadowing the 'this' we have now. Binding it to _this gets around it.
-  var _this = this;
-  //Event Listeners
-  this.canvas.canvas.addEventListener('mousedown', function(evt) { _this.mouseDownListener(evt); }, false);
-
-  var onoffbox = document.getElementById(color + "-onoff");
-  var attractopt = document.getElementById(color + "-attract");
-  var repelopt = document.getElementById(color + "-repel");
-  var crossbox = document.getElementById(color + "-cross");
-  if (onoffbox) {
-    onoffbox.addEventListener("click", function(evt) { _this.enabled = evt.target.checked; }, false);
-    attractopt.addEventListener("click", function(evt) { _this.attract = true; }, false);
-    repelopt.addEventListener("click", function(evt) { _this.attract = false; }, false);
-    crossbox.addEventListener("click", function(evt) { _this.cross = evt.target.checked; }, false);
-  }
-}
-
-Beacon.prototype.mouseDownListener = function (evt) {
-  if (this.enabled) {
-    if ((Math.abs(this.pos.x - this.canvas.mouseX) < this.dim.x/2) &&
-        (Math.abs(this.pos.y - this.canvas.mouseY) < this.dim.y/2)) {
-      if (this.canvas.dragThis == null) {
-        this.canvas.dragThis = this;
-      }
-    }
-  }
-}
-
-Beacon.prototype.update = function() {
-  if (this.enabled && this.canvas.dragThis == this) {
-    this.pos.x = this.canvas.mouseX;
-    this.pos.y = this.canvas.mouseY;
-  }
-}
-
-Beacon.prototype.draw = function() {
-  if (this.enabled) {
-    var size = this.size;
-    this.canvas.ctx.save();
-    this.canvas.ctx.translate(this.pos.x, this.pos.y);
-    this.canvas.ctx.fillStyle = this.color;
-    this.canvas.ctx.fillRect(-size/2,-size/2,size,size);
-    this.canvas.ctx.fillRect(-this.dim.x/2,-this.dim.y/2,this.dim.x,this.dim.y);
-    this.canvas.ctx.restore();
-  }
-}
-
-/***********************************************************************
  * World
  **********************************************************************/
-function World(canvas, rate) {
+function World(canvas, controlPanelId, rate) {
   var _this = this;
+  this.canvas = canvas;
 
+  this.gains = {};
+  /*
   var gains = {"red":  {"red":   {l2l:this.randGain(), l2r:this.randGain(), r2l:this.randGain(), r2r:this.randGain()},
                         "green": {l2l:this.randGain(), l2r:this.randGain(), r2l:this.randGain(), r2r:this.randGain()},
                         "blue":  {l2l:this.randGain(), l2r:this.randGain(), r2l:this.randGain(), r2r:this.randGain()}},
@@ -338,26 +281,26 @@ function World(canvas, rate) {
                "blue": {"red":   {l2l:this.randGain(), l2r:this.randGain(), r2l:this.randGain(), r2r:this.randGain()},
                         "green": {l2l:this.randGain(), l2r:this.randGain(), r2l:this.randGain(), r2r:this.randGain()},
                         "blue":  {l2l:this.randGain(), l2r:this.randGain(), r2l:this.randGain(), r2r:this.randGain()}}};
+  */
 
+  this.buildControlTable(controlPanelId, ["red","green","blue"]);
 
-
-  this.canvas = canvas;
-  this.vehicles  = [new Vehicle(canvas, gains, "red",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()),
-                    new Vehicle(canvas, gains, "green",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()),
-                    new Vehicle(canvas, gains, "blue",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()),
-                    new Vehicle(canvas, gains, "red",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()),
-                    new Vehicle(canvas, gains, "green",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()),
-                    new Vehicle(canvas, gains, "blue",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()),
-                    new Vehicle(canvas, gains, "red",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()),
-                    new Vehicle(canvas, gains, "green",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()),
-                    new Vehicle(canvas, gains, "blue",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()),
-                    new Vehicle(canvas, gains, "red",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()),
-                    new Vehicle(canvas, gains, "green",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()),
-                    new Vehicle(canvas, gains, "blue",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()),
-                    new Vehicle(canvas, gains, "red",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()),
-                    new Vehicle(canvas, gains, "green",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()),
-                    new Vehicle(canvas, gains, "green",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()),
-                    new Vehicle(canvas, gains, "blue",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()) ];
+  this.vehicles  = [new Vehicle(canvas, this.gains, "red",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()),
+                    new Vehicle(canvas, this.gains, "green",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()),
+                    new Vehicle(canvas, this.gains, "blue",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()),
+                    new Vehicle(canvas, this.gains, "red",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()),
+                    new Vehicle(canvas, this.gains, "green",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()),
+                    new Vehicle(canvas, this.gains, "blue",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()),
+                    new Vehicle(canvas, this.gains, "red",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()),
+                    new Vehicle(canvas, this.gains, "green",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()),
+                    new Vehicle(canvas, this.gains, "blue",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()),
+                    new Vehicle(canvas, this.gains, "red",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()),
+                    new Vehicle(canvas, this.gains, "green",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()),
+                    new Vehicle(canvas, this.gains, "blue",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()),
+                    new Vehicle(canvas, this.gains, "red",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()),
+                    new Vehicle(canvas, this.gains, "green",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()),
+                    new Vehicle(canvas, this.gains, "green",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()),
+                    new Vehicle(canvas, this.gains, "blue",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()) ];
   setInterval(function(){_this.step();},rate);
 }
 
@@ -388,26 +331,55 @@ World.prototype.step = function() {
   }
 }
 
-/***********************************************************************
- * page support
- **********************************************************************/
-function buildControlTable(colors) {
-  var gainTypes = ["l2l", "l2r", "r2l", "r2r"];
-  var gainsTable = document.createElement('table');
-  for (r in colors) {
-    var row = gainsTable.insertRow(0);
-    for (c in colors) {
-      var cell = row.insertCell(0);
-      for (t in gainTypes) {
-        var slider = document.createElement("input");
-        slider.type = "range";
-        slider.id = colors[r] + "_" + colors[c] + "_" + gainTypes[t];
-        cell.appendChild(slider);
-        cell.appendChild(document.createElement("br"));
-      }
+World.prototype.ensureGainsEntry = function (key1, key2) {
+  if (!this.gains) this.gains = {};
+  if (!(key1 in this.gains)) this.gains[key1] = {};
+  if (!(key2 in this.gains[key1])) this.gains[key1][key2] = {l2l:0, l2r:0, r2l:0, r2r:0};
+  return this.gains[key1][key2];
+}
+
+World.prototype.createSlider = function (from, to, type) {
+  var _this = this;
+  var slider = document.createElement("input");
+  function genHandler(from, to, type) {
+    var gain = _this.ensureGainsEntry(from, to);
+    switch (type) {
+      case "l2l" : return function(evt) { gain.l2l = this.value; };
+      case "l2r" : return function(evt) { gain.l2r = this.value; };
+      case "r2l" : return function(evt) { gain.r2l = this.value; };
+      case "r2r" : return function(evt) { gain.r2r = this.value; };
+      default: throw 'invalid gains type';
     }
   }
-  var gainsRow = document.getElementById('row');
-  var gainsCell = gainsRow.insertCell(1);
-  gainsCell.appendChild(gainsTable);
+  slider.type = "range";
+  slider.min = "-1.0";
+  slider.max = "1.0";
+  slider.step = "0.1";
+  slider.value = "0";
+  slider.addEventListener("change", genHandler(from, to, type));
+  return slider;
+}
+
+World.prototype.buildControlTable = function (controlPanelId, colors) {
+  var gainsTable = document.getElementById(controlPanelId);
+  gainsTable.innerHTML="";
+  var row = gainsTable.insertRow(-1);
+  row.insertCell(-1);
+  for (c in colors) {
+    row.insertCell(-1).appendChild(document.createTextNode(colors[c]));
+  }
+  for (r in colors) {
+    row = gainsTable.insertRow(-1);
+    row.insertCell(0).appendChild(document.createTextNode(colors[r]));
+    for (c in colors) {
+      var cell = row.insertCell(-1);
+      cell.appendChild(this.createSlider(colors[r], colors[c], "l2l"));
+      cell.appendChild(document.createElement("br"));
+      cell.appendChild(this.createSlider(colors[r], colors[c], "l2r"));
+      cell.appendChild(document.createElement("br"));
+      cell.appendChild(this.createSlider(colors[r], colors[c], "r2l"));
+      cell.appendChild(document.createElement("br"));
+      cell.appendChild(this.createSlider(colors[r], colors[c], "r2r"));
+    }
+  }
 }
