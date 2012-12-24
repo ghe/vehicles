@@ -242,6 +242,7 @@ Vehicle.prototype.draw = function() {
   this.canvas.ctx.lineTo(this.dim.x, -this.dim.y);
   this.canvas.ctx.lineTo(-this.dim.x, 0);
   this.canvas.ctx.lineTo(this.dim.x, this.dim.y);
+  this.canvas.ctx.globalAlpha = 0.7;
   this.canvas.ctx.fillStyle = this.color;
   this.canvas.ctx.fill();
   this.canvas.ctx.closePath();
@@ -357,7 +358,11 @@ World.prototype.createSlider = function (from, to, type) {
   slider.step = "0.1";
   slider.value = "0";
   slider.addEventListener("change", genHandler(from, to, type));
-  return slider;
+  span = document.createElement("span");
+  //span.appendChild(document.createTextNode("-1"));
+  span.appendChild(slider);
+  //span.appendChild(document.createTextNode("1"));
+  return span;
 }
 
 World.prototype.buildControlTable = function (controlPanelId, colors) {
@@ -365,21 +370,34 @@ World.prototype.buildControlTable = function (controlPanelId, colors) {
   gainsTable.innerHTML="";
   var row = gainsTable.insertRow(-1);
   row.insertCell(-1);
-  for (c in colors) {
-    row.insertCell(-1).appendChild(document.createTextNode(colors[c]));
-  }
+  var cell = row.insertCell(-1);
+  cell.colSpan = 4;
+  cell.appendChild(document.createTextNode("sensor to wheel gains [-1, 1]"));
+  cell.align = "center";
+  row = gainsTable.insertRow(-1);
+  row.insertCell(-1);
+  row.insertCell(-1).appendChild(document.createTextNode("left to left"));
+  row.insertCell(-1).appendChild(document.createTextNode("right to right"));
+  row.insertCell(-1).appendChild(document.createTextNode("left to right"));
+  row.insertCell(-1).appendChild(document.createTextNode("right to left"));
   for (r in colors) {
-    row = gainsTable.insertRow(-1);
-    row.insertCell(0).appendChild(document.createTextNode(colors[r]));
     for (c in colors) {
-      var cell = row.insertCell(-1);
-      cell.appendChild(this.createSlider(colors[r], colors[c], "l2l"));
-      cell.appendChild(document.createElement("br"));
-      cell.appendChild(this.createSlider(colors[r], colors[c], "l2r"));
-      cell.appendChild(document.createElement("br"));
-      cell.appendChild(this.createSlider(colors[r], colors[c], "r2l"));
-      cell.appendChild(document.createElement("br"));
-      cell.appendChild(this.createSlider(colors[r], colors[c], "r2r"));
+      row = gainsTable.insertRow(-1);
+      cell = row.insertCell(0);
+      cell.appendChild(document.createTextNode("how "));
+      var span = document.createElement("span");
+      span.style.color = colors[r];
+      span.appendChild(document.createTextNode(colors[r]));
+      cell.appendChild(span);
+      cell.appendChild(document.createTextNode(" responds to "));
+      span = document.createElement("span");
+      span.style.color = colors[c];
+      span.appendChild(document.createTextNode(colors[c]));
+      cell.appendChild(span);
+      row.insertCell(-1).appendChild(this.createSlider(colors[r], colors[c], "l2l"));
+      row.insertCell(-1).appendChild(this.createSlider(colors[r], colors[c], "r2r"));
+      row.insertCell(-1).appendChild(this.createSlider(colors[r], colors[c], "l2r"));
+      row.insertCell(-1).appendChild(this.createSlider(colors[r], colors[c], "r2l"));
     }
   }
 }
