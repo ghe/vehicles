@@ -62,6 +62,7 @@ function clip(value, lo, hi) {
   if (value > hi) return hi;
   return value;
 }
+
 /***********************************************************************
  * Vec2D
  **********************************************************************/
@@ -91,16 +92,21 @@ function Canvas(elementId) {
   var _this = this;
   this.canvas.addEventListener('mousemove', function(evt) { _this.mouseMoveListener(evt); }, false);
   this.canvas.addEventListener('mouseup', function(evt) { _this.mouseUpListener(evt); }, false);
+  this.canvas.addEventListener('mousedown', function(evt) { _this.mouseDownListener(evt); }, false);
 }
 
 Canvas.prototype.mouseMoveListener = function (evt) {
   var root = document.documentElement;
-  this.mouseX = evt.clientX - this.rect.top - root.scrollTop;
-  this.mouseY = evt.clientY - this.rect.left - root.scrollLeft;
+  var rect = this.canvas.getBoundingClientRect();
+  this.mouseX = evt.clientX - rect.left;
+  this.mouseY = evt.clientY - rect.top;
 }
 
 Canvas.prototype.mouseUpListener = function (evt) {
-    this.dragThis = null;
+  this.dragThis = null;
+}
+
+Canvas.prototype.mouseDownListener = function (evt) {
 }
 
 Canvas.prototype.clear = function() {
@@ -131,6 +137,7 @@ function Vehicle(canvas,gains,color,posx,posy, orientation) {
 }
 
 Vehicle.prototype.mouseDownListener = function (evt) {
+  console.log("posx: " + this.pos.x + " mouseX: " + this.canvas.mouseX + " dimx: " + this.dim.x);
   if ((Math.abs(this.pos.x - this.canvas.mouseX) < this.dim.x/2) &&
       (Math.abs(this.pos.y - this.canvas.mouseY) < this.dim.y/2)) {
     if (this.canvas.dragThis == null) {
@@ -142,6 +149,9 @@ Vehicle.prototype.mouseDownListener = function (evt) {
 Vehicle.prototype.mouseWheelListener = function (evt) {
   if (this.canvas.dragThis == this) {
     this.orientation = normalize_angle(this.orientation + (evt.wheelDelta / 500.0));
+    //prevent page scroll while doing this
+    evt.preventDefault();
+    evt.returnValue = false;
   }
 }
 
@@ -272,21 +282,10 @@ function World(canvas, controlPanelId, rate) {
   this.canvas = canvas;
 
   this.gains = {};
-  /*
-  var gains = {"red":  {"red":   {l2l:this.randGain(), l2r:this.randGain(), r2l:this.randGain(), r2r:this.randGain()},
-                        "green": {l2l:this.randGain(), l2r:this.randGain(), r2l:this.randGain(), r2r:this.randGain()},
-                        "blue":  {l2l:this.randGain(), l2r:this.randGain(), r2l:this.randGain(), r2r:this.randGain()}},
-               "green":{"red":   {l2l:this.randGain(), l2r:this.randGain(), r2l:this.randGain(), r2r:this.randGain()},
-                        "green": {l2l:this.randGain(), l2r:this.randGain(), r2l:this.randGain(), r2r:this.randGain()},
-                        "blue":  {l2l:this.randGain(), l2r:this.randGain(), r2l:this.randGain(), r2r:this.randGain()}},
-               "blue": {"red":   {l2l:this.randGain(), l2r:this.randGain(), r2l:this.randGain(), r2r:this.randGain()},
-                        "green": {l2l:this.randGain(), l2r:this.randGain(), r2l:this.randGain(), r2r:this.randGain()},
-                        "blue":  {l2l:this.randGain(), l2r:this.randGain(), r2l:this.randGain(), r2r:this.randGain()}}};
-  */
-
   this.buildControlTable(controlPanelId, ["red","green","blue"]);
 
   this.vehicles  = [new Vehicle(canvas, this.gains, "red",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()),
+                    /*
                     new Vehicle(canvas, this.gains, "green",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()),
                     new Vehicle(canvas, this.gains, "blue",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()),
                     new Vehicle(canvas, this.gains, "red",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()),
@@ -301,6 +300,7 @@ function World(canvas, controlPanelId, rate) {
                     new Vehicle(canvas, this.gains, "red",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()),
                     new Vehicle(canvas, this.gains, "green",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()),
                     new Vehicle(canvas, this.gains, "green",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()),
+                    */
                     new Vehicle(canvas, this.gains, "blue",  this.randCoord(canvas.width), this.randCoord(canvas.height), this.randOrient()) ];
   setInterval(function(){_this.step();},rate);
 }
