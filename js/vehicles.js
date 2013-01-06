@@ -223,9 +223,11 @@ Vehicle.prototype.calcVelocity = function(vehicles) {
     }
   }
   //normalize to a reasonable speed regardless of number of beacons
-  //if (max_influence > 0.0) {
+  if (max_influence > 0.0) {
     this.setSpeed(0.05*(left/max_influence),0.05*(right/max_influence));
-  //}
+  } else {
+    this.setSpeed(0.0, 0.0);
+  }
 }
 
 Vehicle.prototype.update = function() {
