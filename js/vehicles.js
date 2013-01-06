@@ -63,6 +63,11 @@ function clip(value, lo, hi) {
   return value;
 }
 
+function randint(n) {
+  //nifty int-cast trick to get a random integer of 0 thru (n-1)
+  return (Math.random() * n) | 0;
+}
+
 /***********************************************************************
  * Vec2D
  **********************************************************************/
@@ -221,9 +226,6 @@ Vehicle.prototype.calcVelocity = function(vehicles) {
   if (max_influence > 0.0) {
     this.setSpeed(0.05*(left/max_influence),0.05*(right/max_influence));
   }
-  else { //circle around when there are no beacons.
-    this.setSpeed(0.015, 0.01);
-  }
 }
 
 Vehicle.prototype.update = function() {
@@ -285,10 +287,8 @@ function World(canvas, controlPanelId, rate) {
   this.controlPanelId = controlPanelId;
   this.gains = {};
 
-  var f = function(evt) { _this.vehicleUpdate(); };
-  document.getElementById("red").addEventListener("keyup", f);
-  document.getElementById("green").addEventListener("keyup", f);
-  document.getElementById("blue").addEventListener("keyup", f);
+  document.getElementById("apply").addEventListener("click", function(evt) { _this.vehicleUpdate(); });
+  document.getElementById("lucky").addEventListener("click", function(evt) { _this.randomExample(); });
 
   this.vehicleUpdate();
   setInterval(function(){_this.step();},rate);
@@ -312,7 +312,7 @@ World.prototype.vehicleUpdate = function() {
   if (this.addVehicles("red")) includedColors.push("red");
   if (this.addVehicles("green")) includedColors.push("green");
   if (this.addVehicles("blue")) includedColors.push("blue");
-  this.buildControlTable(this.controlPanelId, includedColors);
+  this.buildControlTable(includedColors);
 }
 
 World.prototype.randGain = function() {
@@ -330,9 +330,6 @@ World.prototype.randCoord = function(dim) {
 
 World.prototype.step = function() {
   this.canvas.clear();
-  //maximum wheel speed of 0.05
-  var left = 0.015;
-  var right = 0.01;
 
   for (var i=0;i<this.vehicles.length;i++) {
     var vehicle = this.vehicles[i];
@@ -388,8 +385,8 @@ World.prototype.createSlider = function (from, to, type) {
   return span;
 }
 
-World.prototype.buildControlTable = function (controlPanelId, colors) {
-  var gainsTable = document.getElementById(controlPanelId);
+World.prototype.buildControlTable = function (colors) {
+  var gainsTable = document.getElementById(this.controlPanelId);
   gainsTable.innerHTML="";
   var row = gainsTable.insertRow(-1);
   row.insertCell(-1);
@@ -424,3 +421,35 @@ World.prototype.buildControlTable = function (controlPanelId, colors) {
     }
   }
 }
+
+World.prototype.repelExample = function () {
+}
+World.prototype.randomExample = function () {
+  var colors = { "red":0, "green":0, "blue":0};
+  var colorKeys = Object.keys(colors);
+  var count = randint(100);
+  for (key1 in colors) {
+    for (key2 in colors) {
+      var gain = this.ensureGainsEntry(key1, key2);
+      gain.l2l = this.randGain();
+      gain.l2r = this.randGain();
+      gain.r2l = this.randGain();
+      gain.r2r = this.randGain();
+    }
+  }
+  this.vehicles = [];
+  for (var i=0;i<count;i++) {
+    var color = colorKeys[randint(colorKeys.length)];
+    this.vehicles.push(new Vehicle(this.canvas, this.gains, color, this.randCoord(this.canvas.width), this.randCoord(this.canvas.height), this.randOrient()));
+    colors[color]++;
+  }
+  var usedColors = [];
+  for (color in colors) {
+    if (colors[color] > 0) {
+      document.getElementById(color).value = colors[color];
+      usedColors.push(color);
+    }
+  }
+  this.buildControlTable(usedColors);
+}
+
