@@ -223,9 +223,9 @@ Vehicle.prototype.calcVelocity = function(vehicles) {
     }
   }
   //normalize to a reasonable speed regardless of number of beacons
-  if (max_influence > 0.0) {
+  //if (max_influence > 0.0) {
     this.setSpeed(0.05*(left/max_influence),0.05*(right/max_influence));
-  }
+  //}
 }
 
 Vehicle.prototype.update = function() {
@@ -288,6 +288,9 @@ function World(canvas, controlPanelId, rate) {
   this.gains = {};
 
   document.getElementById("apply").addEventListener("click", function(evt) { _this.vehicleUpdate(); });
+  //document.getElementById("attract").addEventListener("click", function(evt) { _this.attractExample(); });
+  document.getElementById("avoid").addEventListener("click", function(evt) { _this.avoidExample(); });
+  document.getElementById("selforganize").addEventListener("click", function(evt) { _this.selfOrganizeExample(); });
   document.getElementById("lucky").addEventListener("click", function(evt) { _this.randomExample(); });
 
   this.vehicleUpdate();
@@ -352,6 +355,20 @@ World.prototype.getGainsEntry = function (key1, key2, type) {
   return 0;
 }
 
+World.prototype.resetGains = function () {
+  for (i in this.sliders) {
+    var slider = this.sliders[i];
+    slider.value = 0.0;
+    if ("fireEvent" in slider) {
+      slider.fireEvent("onchange");
+    } else {
+      var evt = document.createEvent("HTMLEvents");
+      evt.initEvent("change", false, true);
+      slider.dispatchEvent(evt);
+    }
+  }
+}
+
 World.prototype.ensureGainsEntry = function (key1, key2) {
   if (!this.gains) this.gains = {};
   if (!(key1 in this.gains)) this.gains[key1] = {};
@@ -378,6 +395,8 @@ World.prototype.createSlider = function (from, to, type) {
   slider.step = "0.1";
   slider.value = this.getGainsEntry(from, to, type);
   slider.addEventListener("change", genHandler(from, to, type));
+
+  this.sliders.push(slider);
   span = document.createElement("span");
   //span.appendChild(document.createTextNode("-1"));
   span.appendChild(slider);
@@ -386,6 +405,7 @@ World.prototype.createSlider = function (from, to, type) {
 }
 
 World.prototype.buildControlTable = function (colors) {
+  var _this = this;
   var gainsTable = document.getElementById(this.controlPanelId);
   gainsTable.innerHTML="";
   var row = gainsTable.insertRow(-1);
@@ -395,11 +415,23 @@ World.prototype.buildControlTable = function (colors) {
   cell.appendChild(document.createTextNode("sensor to wheel gains [-1, 1]"));
   cell.align = "center";
   row = gainsTable.insertRow(-1);
-  row.insertCell(-1);
+
+  //reset button
+  var button = document.createElement('button');
+  button.setAttribute('type', 'button');
+  button.setAttribute('id','reset');
+  button.innerHTML = "reset";
+  button.addEventListener("click", function(evt) { _this.resetGains(); });
+
+  //column titles
+  row.insertCell(-1).appendChild(button);
   row.insertCell(-1).appendChild(document.createTextNode("left to left"));
   row.insertCell(-1).appendChild(document.createTextNode("right to right"));
   row.insertCell(-1).appendChild(document.createTextNode("left to right"));
   row.insertCell(-1).appendChild(document.createTextNode("right to left"));
+
+  //the sliders
+  this.sliders = [];
   for (r in colors) {
     for (c in colors) {
       row = gainsTable.insertRow(-1);
@@ -422,8 +454,10 @@ World.prototype.buildControlTable = function (colors) {
   }
 }
 
-World.prototype.repelExample = function () {
+World.prototype.avoidExample = function () {
+  
 }
+
 World.prototype.randomExample = function () {
   var colors = { "red":0, "green":0, "blue":0};
   var colorKeys = Object.keys(colors);
