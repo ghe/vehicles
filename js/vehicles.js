@@ -295,7 +295,7 @@ function World(canvas, controlPanelId, rate) {
   document.getElementById("repelall").addEventListener("click", function(evt) { _this.repelAllExample(); });
   document.getElementById("lucky").addEventListener("click", function(evt) { _this.randomExample(); });
 
-  this.vehicleUpdate();
+  this.repelAllExample();
   setInterval(function(){_this.step();},rate);
 }
 
