@@ -224,7 +224,7 @@ Vehicle.prototype.calcVelocity = function(vehicles) {
   }
   //normalize to a reasonable speed regardless of number of beacons
   if (max_influence > 0.0) {
-    this.setSpeed(0.05*(left/max_influence),0.05*(right/max_influence));
+    this.setSpeed(0.25*(left/max_influence),0.25*(right/max_influence));
   } else {
     this.setSpeed(0.0, 0.0);
   }
@@ -388,6 +388,8 @@ World.prototype.createSlider = function (from, to, type) {
       case "l2r" : return function(evt) { gain.l2r = this.value; };
       case "r2l" : return function(evt) { gain.r2l = this.value; };
       case "r2r" : return function(evt) { gain.r2r = this.value; };
+      case "straight" : return function(evt) { gain.l2l = this.value; gain.r2r = this.value; };
+      case "cross"    : return function(evt) { gain.l2r = this.value; gain.r2l = this.value;  };
       default: throw 'invalid gains type';
     }
   }
@@ -395,7 +397,7 @@ World.prototype.createSlider = function (from, to, type) {
   slider.min = "-1.0";
   slider.max = "1.0";
   slider.step = "0.1";
-  slider.value = this.getGainsEntry(from, to, type);
+  slider.value = this.getGainsEntry(from, to, ((type == "straight") ? "l2l" : ((type == "cross") ? "l2r" : type)));
   slider.addEventListener("change", genHandler(from, to, type));
 
   this.sliders.push(slider);
@@ -427,10 +429,11 @@ World.prototype.buildControlTable = function (colors) {
 
   //column titles
   row.insertCell(-1).appendChild(button);
-  row.insertCell(-1).appendChild(document.createTextNode("left to left"));
-  row.insertCell(-1).appendChild(document.createTextNode("right to right"));
-  row.insertCell(-1).appendChild(document.createTextNode("left to right"));
-  row.insertCell(-1).appendChild(document.createTextNode("right to left"));
+  //slidertypes = ["l2l","r2r","l2r","r2l"];
+  slidertypes = ["straight","cross"];
+  for (s in slidertypes) {
+    row.insertCell(-1).appendChild(document.createTextNode(slidertypes[s]));
+  }
 
   //the sliders
   this.sliders = [];
@@ -438,6 +441,7 @@ World.prototype.buildControlTable = function (colors) {
     for (c in colors) {
       row = gainsTable.insertRow(-1);
       cell = row.insertCell(0);
+      cell.setAttribute('width', '200');
       cell.appendChild(document.createTextNode("how "));
       var span = document.createElement("span");
       span.style.color = colors[r];
@@ -448,10 +452,11 @@ World.prototype.buildControlTable = function (colors) {
       span.style.color = colors[c];
       span.appendChild(document.createTextNode(colors[c]));
       cell.appendChild(span);
-      row.insertCell(-1).appendChild(this.createSlider(colors[c], colors[r], "l2l"));
-      row.insertCell(-1).appendChild(this.createSlider(colors[c], colors[r], "r2r"));
-      row.insertCell(-1).appendChild(this.createSlider(colors[c], colors[r], "l2r"));
-      row.insertCell(-1).appendChild(this.createSlider(colors[c], colors[r], "r2l"));
+      for (s in slidertypes) {
+        cell = row.insertCell(-1);
+        cell.setAttribute('width', '10');
+        cell.appendChild(this.createSlider(colors[c], colors[r], slidertypes[s]));
+      }
     }
   }
 }
