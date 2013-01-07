@@ -290,9 +290,9 @@ function World(canvas, controlPanelId, rate) {
   this.gains = {};
 
   document.getElementById("apply").addEventListener("click", function(evt) { _this.vehicleUpdate(); });
-  //document.getElementById("attract").addEventListener("click", function(evt) { _this.attractExample(); });
   document.getElementById("avoid").addEventListener("click", function(evt) { _this.avoidExample(); });
   document.getElementById("selforganize").addEventListener("click", function(evt) { _this.selfOrganizeExample(); });
+  document.getElementById("repelall").addEventListener("click", function(evt) { _this.repelAllExample(); });
   document.getElementById("lucky").addEventListener("click", function(evt) { _this.randomExample(); });
 
   this.vehicleUpdate();
@@ -456,14 +456,122 @@ World.prototype.buildControlTable = function (colors) {
   }
 }
 
+//specifically placed circuit for a blue vehicle trying to get
+// to green while avoiding red. red and green are static.
 World.prototype.avoidExample = function () {
-  
+  //here the key order is "how key1 affects key2"
+  this.gains = { "red":   {"red":  {l2l:0, r2r:0, l2r:0, r2l:0},
+                           "green":{l2l:0, r2r:0, l2r:0, r2l:0},
+                           "blue": {l2l:1, r2r:1, l2r:0, r2l:0}},
+                 "green": {"red":  {l2l:0, r2r:0, l2r:0, r2l:0},
+                           "green":{l2l:0, r2r:0, l2r:0, r2l:0},
+                           "blue": {l2l:0, r2r:0, l2r:1, r2l:1}},
+                 "blue":  {"red":  {l2l:0, r2r:0, l2r:0, r2l:0},
+                           "green":{l2l:0, r2r:0, l2r:0, r2l:0},
+                           "blue": {l2l:0, r2r:0, l2r:0, r2l:0}}};
+  this.vehicles = [];
+  for (var i=0;i<10;i++) {
+    this.vehicles.push(new Vehicle(this.canvas, this.gains, "green", this.canvas.width/2, 32, this.randOrient()));
+  }
+  for (var i=0;i<5;i++) {
+    this.vehicles.push(new Vehicle(this.canvas, this.gains, "red",
+      (this.canvas.width/2) - 25 + 20 * i,
+      (this.canvas.height/2) - 25 + 20 * i,
+      this.randOrient()));
+  }
+  this.vehicles.push(new Vehicle(this.canvas, this.gains, "blue", this.canvas.width/2, this.canvas.height-32, HALFPIX3));
+  document.getElementById("red").value = 10;
+  document.getElementById("green").value = 5;
+  document.getElementById("blue").value = 1;
+  this.buildControlTable(["red","green","blue"]);
 }
 
+//attracted by your own strongly, but somewhat repelled
+// by the others. Form single color cliques.
+World.prototype.selfOrganizeExample = function () {
+  var y = 0.9;
+  var n = 0.1;
+  //here the key order is "how key1 affects key2"
+  this.gains = { "red":   {"red":  {l2l:0, r2r:0, l2r:y, r2l:y},
+                           "green":{l2l:n, r2r:n, l2r:0, r2l:0},
+                           "blue": {l2l:n, r2r:n, l2r:0, r2l:0}},
+                 "green": {"red":  {l2l:n, r2r:n, l2r:0, r2l:0},
+                           "green":{l2l:0, r2r:0, l2r:y, r2l:y},
+                           "blue": {l2l:n, r2r:n, l2r:0, r2l:0}},
+                 "blue":  {"red":  {l2l:n, r2r:n, l2r:0, r2l:0},
+                           "green":{l2l:n, r2r:n, l2r:0, r2l:0},
+                           "blue": {l2l:0, r2r:0, l2r:y, r2l:y}}};
+  this.vehicles = [];
+  for (var i=0;i<20;i++) {
+    this.vehicles.push(new Vehicle(this.canvas, this.gains, "red", this.randCoord(this.canvas.width), this.randCoord(this.canvas.height), this.randOrient()));
+    this.vehicles.push(new Vehicle(this.canvas, this.gains, "green", this.randCoord(this.canvas.width), this.randCoord(this.canvas.height), this.randOrient()));
+    this.vehicles.push(new Vehicle(this.canvas, this.gains, "blue", this.randCoord(this.canvas.width), this.randCoord(this.canvas.height), this.randOrient()));
+  }
+  document.getElementById("red").value = 20;
+  document.getElementById("green").value = 20;
+  document.getElementById("blue").value = 20;
+  this.buildControlTable(["red","green","blue"]);
+}
+
+//repelled by your own, but attracted by others: never converges
+World.prototype.repelOwnExample = function () {
+  var y = 0.7;
+  var n = 0.7;
+  //here the key order is "how key1 affects key2"
+  this.gains = { "red":   {"red":  {l2l:n, r2r:n, l2r:0, r2l:0},
+                           "green":{l2l:0, r2r:0, l2r:y, r2l:y},
+                           "blue": {l2l:0, r2r:0, l2r:y, r2l:y}},
+                 "green": {"red":  {l2l:0, r2r:0, l2r:y, r2l:y},
+                           "green":{l2l:n, r2r:n, l2r:0, r2l:0},
+                           "blue": {l2l:0, r2r:0, l2r:y, r2l:y}},
+                 "blue":  {"red":  {l2l:0, r2r:0, l2r:y, r2l:y},
+                           "green":{l2l:0, r2r:0, l2r:y, r2l:y},
+                           "blue": {l2l:n, r2r:n, l2r:0, r2l:0}}};
+  this.vehicles = [];
+  for (var i=0;i<20;i++) {
+    this.vehicles.push(new Vehicle(this.canvas, this.gains, "red", this.randCoord(this.canvas.width), this.randCoord(this.canvas.height), this.randOrient()));
+    this.vehicles.push(new Vehicle(this.canvas, this.gains, "green", this.randCoord(this.canvas.width), this.randCoord(this.canvas.height), this.randOrient()));
+    this.vehicles.push(new Vehicle(this.canvas, this.gains, "blue", this.randCoord(this.canvas.width), this.randCoord(this.canvas.height), this.randOrient()));
+  }
+  document.getElementById("red").value = 20;
+  document.getElementById("green").value = 20;
+  document.getElementById("blue").value = 20;
+  this.buildControlTable(["red","green","blue"]);
+}
+
+//dislike everyone. starts out cool, then unconverging chaos.
+//because the world wraps for motion, but not sensing, and
+// sensing is directional, we do not get t spread out equilibrium
+World.prototype.repelAllExample = function () {
+  var y = 0.9;
+  var n = 0.9;
+  //here the key order is "how key1 affects key2"
+  this.gains = { "red":   {"red":  {l2l:n, r2r:n, l2r:0, r2l:0},
+                           "green":{l2l:n, r2r:n, l2r:0, r2l:0},
+                           "blue": {l2l:n, r2r:n, l2r:0, r2l:0}},
+                 "green": {"red":  {l2l:n, r2r:n, l2r:0, r2l:0},
+                           "green":{l2l:n, r2r:n, l2r:0, r2l:0},
+                           "blue": {l2l:n, r2r:n, l2r:0, r2l:0}},
+                 "blue":  {"red":  {l2l:n, r2r:n, l2r:0, r2l:0},
+                           "green":{l2l:n, r2r:n, l2r:0, r2l:0},
+                           "blue": {l2l:n, r2r:n, l2r:0, r2l:0}}};
+  this.vehicles = [];
+  for (var i=0;i<20;i++) {
+    this.vehicles.push(new Vehicle(this.canvas, this.gains, "red", this.randCoord(this.canvas.width), this.randCoord(this.canvas.height), this.randOrient()));
+    this.vehicles.push(new Vehicle(this.canvas, this.gains, "green", this.randCoord(this.canvas.width), this.randCoord(this.canvas.height), this.randOrient()));
+    this.vehicles.push(new Vehicle(this.canvas, this.gains, "blue", this.randCoord(this.canvas.width), this.randCoord(this.canvas.height), this.randOrient()));
+  }
+  document.getElementById("red").value = 20;
+  document.getElementById("green").value = 20;
+  document.getElementById("blue").value = 20;
+  this.buildControlTable(["red","green","blue"]);
+}
+
+//a random number of vehicles with random parameters
 World.prototype.randomExample = function () {
   var colors = { "red":0, "green":0, "blue":0};
   var colorKeys = Object.keys(colors);
-  var count = randint(100);
+  var count = randint(20);
   for (key1 in colors) {
     for (key2 in colors) {
       var gain = this.ensureGainsEntry(key1, key2);
