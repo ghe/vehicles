@@ -1,10 +1,10 @@
 /***********************************************************************
  * global
  **********************************************************************/
-const TWOPI = Math.PI * 2;
-const HALFPI = Math.PI / 2;
-const HALFPIX3 = 3*HALFPI;
-const PISQUARED = square(Math.PI);
+var TWOPI = Math.PI * 2;
+var HALFPI = Math.PI / 2;
+var HALFPIX3 = 3*HALFPI;
+var PISQUARED = square(Math.PI);
 
 function vehicleSimulation(canvas, controlPanelId) {
   world = new World(canvas, controlPanelId, 1);
