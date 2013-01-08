@@ -393,7 +393,7 @@ World.prototype.createSlider = function (from, to, type) {
       default: throw 'invalid gains type';
     }
   }
-  slider.type = "range";
+  slider.setAttribute("type", "range");
   slider.min = "-1.0";
   slider.max = "1.0";
   slider.step = "0.1";
